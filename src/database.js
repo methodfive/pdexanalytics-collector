@@ -113,8 +113,6 @@ export async function saveTrade(trade)
             volume = new_data.volume,
             timestamp = new_data.timestamp`, [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, new Date(trade.t)],
             function (err, rows, fields) {
-                console.log(rows);
-                console.log(fields);
                 if (err)
                     console.log("saveTrade error", err);
             }
