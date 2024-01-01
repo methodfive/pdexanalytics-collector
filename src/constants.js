@@ -9,6 +9,7 @@ export const LMP_WALLET = "esoEt6uZ3GuFV8EzKB2EAREe3KE9WuRVfmhK1RRtwffY78ArH";
 
 export const FILTERED_ASSETS = ['101112','123','188197390862117588552302061289480388608','456','789']
 export const USDT_ASSETS = ['3496813586714279103986568049643838918']; // assets we can derive price from
+export const PDEX_ASSET = "PDEX";
 export const USDT_ASSET_PRICE = 1.00;
 
 export const UPDATE_ASSETS_FREQUENCY = 1000 * 60 * 30;

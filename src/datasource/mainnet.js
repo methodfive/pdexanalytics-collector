@@ -56,3 +56,21 @@ export async function getPDEXBalance(wallet) {
     let results = await api.derive.balances.all(wallet);
     return Number(results.availableBalance.toPrimitive());
 }
+
+async function getCurrentEra() {
+    const wsProvider = getWsProvider();
+    const api = await ApiPromise.create({provider: wsProvider});
+
+    const chainActiveEra = await api.query.staking.activeEra();
+    return JSON.parse(JSON.stringify(chainActiveEra)).index;
+}
+
+export async function getTotalStaked() {
+    const wsProvider = getWsProvider();
+    const api = await ApiPromise.create({provider: wsProvider});
+
+    let activeEra = await getCurrentEra();
+
+    let results = await api.query.staking.erasTotalStake([activeEra]);
+    return results.toPrimitive();
+}

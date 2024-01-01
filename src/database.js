@@ -75,10 +75,12 @@ export async function saveExchangeDaily(stats)
             createConnectionPool();
 
         connectionPool.query(
-            `INSERT INTO exchange_daily (stat_date, users, tvl) values (?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl) values (?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
-            tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl)`, [new Date(), stats.users, stats.tvl],
+            tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
+            total_staked = IF(new_data.total_staked is null, exchange_daily.total_staked, new_data.total_staked),
+            staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl)`, [new Date(), stats.users, stats.tvl, stats.total_staked, stats.staked_tvl],
             function (err, rows, fields) {
                 if (err)
                     console.log("saveUsers error", err);

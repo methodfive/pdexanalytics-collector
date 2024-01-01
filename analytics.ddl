@@ -1,6 +1,7 @@
 DROP TABLE pdexanalytics.trades;
 DROP TABLE pdexanalytics.exchange_daily;
 DROP TABLE pdexanalytics.markets_daily;
+DROP TABLE pdexanalytics.assets_daily;
 DROP TABLE pdexanalytics.markets;
 DROP TABLE pdexanalytics.assets;
 
@@ -49,6 +50,8 @@ CREATE TABLE pdexanalytics.exchange_daily
   volume decimal(12,2),
   users int,
   trades int,
+  total_staked int,
+  staked_tvl decimal(12,2),
   PRIMARY KEY (stat_date)
 );
 

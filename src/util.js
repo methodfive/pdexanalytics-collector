@@ -12,3 +12,19 @@ export function getAssetsFromMarket(market) {
 
     return market.split("-");
 }
+
+export function convertAmountToReadable(amount)
+{
+    if(isEmpty(amount))
+        return;
+
+    return (Number(amount) * Math.pow(10,-12)).toFixed(2);
+}
+
+export function calculateTVL(amount, price)
+{
+    if(isEmpty(amount) || isEmpty(price))
+        return;
+
+    return (Number(amount) * Math.pow(10,-12) * Number(price)).toFixed(2);
+}

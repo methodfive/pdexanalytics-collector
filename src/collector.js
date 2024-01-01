@@ -1,15 +1,15 @@
 import "@polkadot/api-augment"
 import {getOrderBookAssets, getOrderBookMarkets} from "./datasource/graphql.js";
-import {closeRpcProvider, getAssetBalances} from "./datasource/mainnet.js";
+import {closeRpcProvider, getAssetBalances, getTotalStaked} from "./datasource/mainnet.js";
 import {
     FILTERED_ASSETS,
-    LMP_WALLET, TIME_BETWEEN_TIMERS,
+    LMP_WALLET, PDEX_ASSET, TIME_BETWEEN_TIMERS,
     UPDATE_ASSETS_FREQUENCY,
     UPDATE_MARKETS_FREQUENCY, UPDATE_STREAMS_FREQUENCY,
     UPDATE_TVL_FREQUENCY, UPDATE_USERS_FREQUENCY,
     USDT_ASSETS
 } from "./constants.js";
-import {getAssetsFromMarket, isEmpty, isMapEmpty} from "./util.js";
+import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty} from "./util.js";
 import {getRegisteredUsers} from "./datasource/subscan.js";
 import {saveTrade, saveAsset, saveAssets, saveMarket, saveExchangeDaily, nightlyJob} from "./database.js";
 import {closeStreams, closeWssClient, streamTrades} from "./datasource/graphql_sub.js";
@@ -104,6 +104,30 @@ export class Collector {
         finally
         {
             this.inUpdateTVL = false;
+        }
+    }
+
+    async updateStaked()
+    {
+        if(this.inUpdateStaked)
+            return;
+
+        this.inUpdateStaked = true;
+
+        try {
+            let totalStaked = await getTotalStaked();
+            let pdexPrice = this.getAssetPrice(PDEX_ASSET);
+
+            if(isEmpty(pdexPrice))
+                return;
+
+            let stakedTvl = calculateTVL(totalStaked, pdexPrice);
+
+            await saveExchangeDaily({total_staked: convertAmountToReadable(totalStaked), staked_tvl: stakedTvl});
+        }
+        finally
+        {
+            this.inUpdateStaked = false;
         }
     }
 
@@ -265,6 +289,7 @@ export class Collector {
         new CronJob('0 5 0 * * *',
             async function () {
                 await nightlyJob();
+                await this.updateStaked();
             },
             null,
             true,
@@ -276,7 +301,7 @@ export class Collector {
         if(isEmpty(asset.price) || isEmpty(asset.balance))
             return;
 
-        asset.tvl = (Number(asset.balance) * Math.pow(10,-12) * Number(asset.price)).toFixed(2);
+        asset.tvl = calculateTVL(asset.balance, asset.price);
     }
 
     marketExists(market) {
@@ -284,6 +309,18 @@ export class Collector {
             return false;
 
         return this.markets.includes(market);
+    }
+
+    getAssetPrice(asset)
+    {
+        if(isEmpty(this.assets))
+            return null;
+
+        if(this.assets.has(asset))
+        {
+            return this.assets.get(asset).price;
+        }
+        return null;
     }
 
     marketAssetsExists(market) {
