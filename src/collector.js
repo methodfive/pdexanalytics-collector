@@ -5,7 +5,7 @@ import {
     FILTERED_ASSETS,
     LMP_WALLET, PDEX_ASSET, TIME_BETWEEN_TIMERS,
     UPDATE_ASSETS_FREQUENCY,
-    UPDATE_MARKETS_FREQUENCY, UPDATE_STREAMS_FREQUENCY,
+    UPDATE_MARKETS_FREQUENCY, UPDATE_STAKED_FREQUENCY, UPDATE_STREAMS_FREQUENCY,
     UPDATE_TVL_FREQUENCY, UPDATE_USERS_FREQUENCY,
     USDT_ASSETS
 } from "./constants.js";
@@ -26,6 +26,7 @@ export class Collector {
     userTimer;
     subscriptionTimer;
     tvlTimer;
+    stakedTimer;
 
     streamDisconnectFlag;
     streamOkToReconnect;
@@ -286,10 +287,15 @@ export class Collector {
             }, UPDATE_TVL_FREQUENCY);
         }, TIME_BETWEEN_TIMERS * 4);
 
+        setTimeout(() => {
+            this.stakedTimer = setInterval(() => {
+                this.updateStaked();
+            }, UPDATE_STAKED_FREQUENCY);
+        }, TIME_BETWEEN_TIMERS * 5);
+
         new CronJob('0 5 0 * * *',
             async function () {
                 await nightlyJob();
-                await this.updateStaked();
             },
             null,
             true,

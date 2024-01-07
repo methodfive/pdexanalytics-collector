@@ -41,7 +41,7 @@ CREATE TABLE pdexanalytics.trades
 );
 
 ALTER TABLE trades ADD INDEX timestamp_index (timestamp);
-ALTER TABLE markets_daily add INDEX market_index (base_asset_id, quote_asset_id);
+ALTER TABLE trades add INDEX market_index (base_asset_id, quote_asset_id);
 
 CREATE TABLE pdexanalytics.exchange_daily
 (

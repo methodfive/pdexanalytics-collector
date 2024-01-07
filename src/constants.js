@@ -13,6 +13,7 @@ export const PDEX_ASSET = "PDEX";
 export const USDT_ASSET_PRICE = 1.00;
 
 export const UPDATE_ASSETS_FREQUENCY = 1000 * 60 * 30;
+export const UPDATE_STAKED_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_MARKETS_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_TVL_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_USERS_FREQUENCY = 1000 * 60 * 30;

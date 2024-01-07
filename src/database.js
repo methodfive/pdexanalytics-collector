@@ -181,6 +181,14 @@ export async function nightlyJob()
             createConnectionPool();
 
         connectionPool.query(
+            `delete from markets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY);`, [],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("nightlyJob markets clean error", err);
+            }
+        );
+
+        connectionPool.query(
             `insert into markets_daily (stat_date, base_asset_id, quote_asset_id, volume, trades) 
                 select date(timestamp), base_asset_id, quote_asset_id, sum(volume), count(*) from trades
                 where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
@@ -200,14 +208,22 @@ export async function nightlyJob()
             createConnectionPool();
 
         connectionPool.query(
+            `delete from assets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY);`, [],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("nightlyJob assets error", err);
+            }
+        );
+
+        connectionPool.query(
             `insert into assets_daily (stat_date, asset_id, price, tvl, volume, trades) select stat_date, asset_id, avg(price) as price, sum(tvl) as tvl, sum(volume) as volume, sum(trades) as trades from (
     select date(timestamp) as stat_date, base_asset_id as asset_id, (select price from assets where asset_id = trades.base_asset_id) as price, (select tvl from assets where asset_id = trades.base_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
 where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-group by base_asset_id, date(timestamp)
+group by base_asset_id, date(stat_date)
 union
 select date(timestamp) as stat_date, quote_asset_id as asset_id, (select price from assets where asset_id = trades.quote_asset_id) as price, (select tvl from assets where asset_id = trades.quote_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
 where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-group by quote_asset_id, date(timestamp)) stat_data
+group by quote_asset_id, date(stat_date)) stat_data
 group by stat_date, asset_id `, [],
             function (err, rows, fields) {
                 if (err)
