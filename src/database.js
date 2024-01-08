@@ -21,6 +21,18 @@ function createConnectionPool()
     });
 }
 
+function closeConnectionPool()
+{
+    try {
+        if(connectionPool != null) {
+            connectionPool.end(function (err) {
+                console.log("RDS connections closed.");
+            });
+        }
+    }
+    catch(e) {}
+}
+
 export async function saveAssets(assets)
 {
     if(isMapEmpty(assets))
