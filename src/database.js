@@ -243,6 +243,22 @@ export async function nightlyJob()
             createConnectionPool();
 
         connectionPool.query(
+            `delete from assets_hourly where stat_time <= DATE_SUB(CURDATE(), INTERVAL 7 DAY);`, [],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("nightlyJob markets clean error", err);
+            }
+        );
+    }
+    catch(e) {
+        console.log("Error performing delete job",e);
+    }
+
+    try {
+        if (connectionPool == null)
+            createConnectionPool();
+
+        connectionPool.query(
             `delete from markets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY);`, [],
             function (err, rows, fields) {
                 if (err)
