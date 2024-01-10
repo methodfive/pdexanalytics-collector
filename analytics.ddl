@@ -77,3 +77,14 @@ CREATE TABLE pdexanalytics.assets_daily
   trades int,
   PRIMARY KEY (stat_date, asset_id)
 );
+
+CREATE TABLE pdexanalytics.assets_hourly
+(
+  stat_time timestamp not null,
+  asset_id varchar(64) not null,
+  tvl decimal(12,2),
+  price decimal(20,10) not null,
+  PRIMARY KEY (stat_time, asset_id)
+);
+
+ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);

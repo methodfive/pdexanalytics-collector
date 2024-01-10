@@ -165,6 +165,40 @@ export async function saveMarket(market)
     }
 }
 
+export async function hourlyJob()
+{
+    console.log("hourly job");
+    let currentTime = new Date();
+    currentTime.setMilliseconds(0)
+    currentTime.setSeconds(0);
+    currentTime.setMinutes(0);
+
+    try {
+        if (connectionPool == null)
+            createConnectionPool();
+
+        connectionPool.query(
+            `delete from assets_hourly where date(stat_time) = ?`, [currentTime],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("hourlyJob clean error", err);
+            }
+        );
+
+        connectionPool.query(
+            `insert into assets_hourly (stat_time,asset_id, tvl, price)
+        select ?, asset_id, tvl, price from assets`, [currentTime],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("hourlyJob insert error", err);
+            }
+        );
+    }
+    catch(e) {
+        console.log("Error performing hourlyJob job",e);
+    }
+}
+
 export async function nightlyJob()
 {
     console.log("Night job");
@@ -186,6 +220,22 @@ export async function nightlyJob()
     }
     catch(e) {
         console.log("Error performing exchange_daily job",e);
+    }
+
+    try {
+        if (connectionPool == null)
+            createConnectionPool();
+
+        connectionPool.query(
+            `delete from trades where timestamp <= DATE_SUB(CURDATE(), INTERVAL 7 DAY);`, [],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("nightlyJob markets clean error", err);
+            }
+        );
+    }
+    catch(e) {
+        console.log("Error performing delete job",e);
     }
 
     try {

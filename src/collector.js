@@ -11,7 +11,7 @@ import {
 } from "./constants.js";
 import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty} from "./util.js";
 import {getRegisteredUsers} from "./datasource/subscan.js";
-import {saveTrade, saveAsset, saveAssets, saveMarket, saveExchangeDaily, nightlyJob} from "./database.js";
+import {saveTrade, saveAsset, saveAssets, saveMarket, saveExchangeDaily, nightlyJob, hourlyJob} from "./database.js";
 import {closeStreams, closeWssClient, streamTrades} from "./datasource/graphql_sub.js";
 import {CronJob} from "cron";
 
@@ -296,6 +296,15 @@ export class Collector {
         new CronJob('0 5 0 * * *',
             async function () {
                 await nightlyJob();
+            },
+            null,
+            true,
+            'Etc/UTC'
+        );
+
+        new CronJob('0 35 * * * *',
+            async function () {
+                await hourlyJob();
             },
             null,
             true,
