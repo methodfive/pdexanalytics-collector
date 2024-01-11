@@ -1,6 +1,6 @@
 import "@polkadot/api-augment"
-import {getOrderBookAssets, getOrderBookMarkets} from "./datasource/graphql.js";
-import {closeRpcProvider, getAssetBalances, getTotalStaked} from "./datasource/mainnet.js";
+import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
+import {closeRpcProvider, getAssetBalances, getTotalStaked} from "./providers/mainnet.js";
 import {
     FILTERED_ASSETS,
     LMP_WALLET, PDEX_ASSET, TIME_BETWEEN_TIMERS,
@@ -10,10 +10,14 @@ import {
     USDT_ASSETS
 } from "./constants.js";
 import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty} from "./util.js";
-import {getRegisteredUsers} from "./datasource/subscan.js";
-import {saveTrade, saveAsset, saveAssets, saveMarket, saveExchangeDaily, nightlyJob, hourlyJob} from "./database.js";
-import {closeStreams, closeWssClient, streamTrades} from "./datasource/graphql_sub.js";
+import {getRegisteredUsers} from "./providers/subscan.js";
+import {
+    closeConnectionPool
+} from "./db/database.js";
+import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_sub.js";
 import {CronJob} from "cron";
+import {saveAsset, saveAssets, saveExchangeDaily, saveMarket, saveTrade} from "./db/queries.js";
+import {hourlyJob, nightlyJob} from "./db/jobs.js";
 
 export class Collector {
     assets;
@@ -257,6 +261,7 @@ export class Collector {
             }
             closeWssClient();
             closeRpcProvider();
+            closeConnectionPool();
         };
 
         process.on('SIGTERM', () => {
