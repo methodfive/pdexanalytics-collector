@@ -56,7 +56,17 @@ export class Collector {
         let assets = await getOrderBookAssets();
 
         if(!isMapEmpty(assets)) {
+            let oldAssets = this.assets;
             this.assets = assets;
+
+            if(oldAssets != null) {
+                for (let key of oldAssets.keys()) {
+                    if (this.assets.has(key)) {
+                        this.assets.get(key).price = oldAssets.get(key).price;
+                    }
+                }
+            }
+
             await saveAssets(this.assets);
         }
     }
@@ -99,8 +109,9 @@ export class Collector {
                     totalTVL += Number(asset.tvl);
                 }
             }
-            console.log("TOTAL TVL:", totalTVL);
-            await saveExchangeDaily({tvl:totalTVL});
+
+            //console.log("TOTAL TVL:", totalTVL);
+            //await saveExchangeDaily({tvl:totalTVL});
         }
         finally
         {

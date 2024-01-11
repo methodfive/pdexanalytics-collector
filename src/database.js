@@ -167,18 +167,18 @@ export async function saveMarket(market)
 
 export async function hourlyJob()
 {
-    console.log("hourly job");
     let currentTime = new Date();
     currentTime.setMilliseconds(0)
     currentTime.setSeconds(0);
     currentTime.setMinutes(0);
+    console.log("hourly job", currentTime);
 
     try {
         if (connectionPool == null)
             createConnectionPool();
 
         connectionPool.query(
-            `delete from assets_hourly where date(stat_time) = ?`, [currentTime],
+            `delete from assets_hourly where stat_time = ?`, [currentTime],
             function (err, rows, fields) {
                 if (err)
                     console.log("hourlyJob clean error", err);
@@ -191,6 +191,19 @@ export async function hourlyJob()
             function (err, rows, fields) {
                 if (err)
                     console.log("hourlyJob insert error", err);
+            }
+        );
+
+        connectionPool.query(
+            ` INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl) values (CURDATE(), null, (select sum(tvl) from assets), null, null) as new_data
+         ON DUPLICATE KEY UPDATE 
+            users = IF(new_data.users is null, exchange_daily.users, new_data.users),
+            tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
+            total_staked = IF(new_data.total_staked is null, exchange_daily.total_staked, new_data.total_staked),
+            staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl)`, [],
+            function (err, rows, fields) {
+                if (err)
+                    console.log("hourlyJob total tvl error", err);
             }
         );
     }
@@ -314,4 +327,3 @@ group by stat_date, asset_id `, [],
     }
 
 }
-
