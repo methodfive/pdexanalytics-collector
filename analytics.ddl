@@ -16,6 +16,8 @@ CREATE TABLE pdexanalytics.assets
   PRIMARY KEY (asset_id)
 );
 
+ALTER TABLE assets ADD INDEX symbol_index (symbol);
+
 CREATE TABLE pdexanalytics.markets
 (
   base_asset_id varchar(64) not null,

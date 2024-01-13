@@ -6,6 +6,15 @@ export function isEmpty(e) {
     return e == null || e.length === 0;
 }
 
+export function getDateFromUtc(t) {
+    if(isEmpty(t))
+        return;
+
+    let d = new Date(0);
+    d.setUTCSeconds(t);
+    return d;
+}
+
 export function getAssetsFromMarket(market) {
     if(isEmpty(market))
         return null;

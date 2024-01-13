@@ -1,4 +1,4 @@
-import {getAssetsFromMarket, isEmpty, isMapEmpty} from "../util.js";
+import {getAssetsFromMarket, getDateFromUtc, isEmpty, isMapEmpty} from "../util.js";
 import {getConnection, queryAsyncWithRetries} from "./database.js";
 
 export async function saveAssets(assets)
@@ -89,7 +89,7 @@ export async function saveTrade(trade)
             quantity = new_data.quantity,
             volume = new_data.volume,
             timestamp = new_data.timestamp`,
-            [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, new Date(trade.t)],
+            [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, getDateFromUtc(trade.t)],
             ([rows,fields]) => {},
             1
         );

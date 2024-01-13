@@ -40,7 +40,8 @@ export async function getAssetBalances(assets, wallet) {
 
     for(let i = 0; i < results.length; i++)
     {
-        assets.get(requestedAssets[i][0]).balance = Number(results[i].toPrimitive().balance);
+        if(results[i].toPrimitive() != null)
+            assets.get(requestedAssets[i][0]).balance = Number(results[i].toPrimitive().balance);
     }
     assets.get("PDEX").balance = await getPDEXBalance(wallet);
     return assets;
