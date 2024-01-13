@@ -10,9 +10,10 @@ export function getDateFromUtc(t) {
     if(isEmpty(t))
         return;
 
-    let d = new Date(0);
-    d.setUTCSeconds(t);
-    return d;
+    return new Date(Number(t));
+    //let d = new Date(0);
+    //d.setUTCSeconds(t);
+    //return d;
 }
 
 export function getAssetsFromMarket(market) {
