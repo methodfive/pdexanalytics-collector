@@ -28,7 +28,7 @@ export async function getAssetBalances(assets, wallet) {
         return;
 
     const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider});
+    const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
 
     let requestedAssets = [];
     for (let key of assets.keys()) {
@@ -40,8 +40,9 @@ export async function getAssetBalances(assets, wallet) {
 
     for(let i = 0; i < results.length; i++)
     {
-        if(results[i].toPrimitive() != null)
+        if(results[i].toPrimitive() != null) {
             assets.get(requestedAssets[i][0]).balance = Number(results[i].toPrimitive().balance);
+        }
     }
     assets.get("PDEX").balance = await getPDEXBalance(wallet);
     return assets;
@@ -52,7 +53,7 @@ export async function getPDEXBalance(wallet) {
         return;
 
     const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider});
+    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
 
     let results = await api.derive.balances.all(wallet);
     return Number(results.availableBalance.toPrimitive());
@@ -60,7 +61,7 @@ export async function getPDEXBalance(wallet) {
 
 async function getCurrentEra() {
     const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider});
+    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
 
     const chainActiveEra = await api.query.staking.activeEra();
     return JSON.parse(JSON.stringify(chainActiveEra)).index;
@@ -68,7 +69,7 @@ async function getCurrentEra() {
 
 export async function getTotalStaked() {
     const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider});
+    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
 
     let activeEra = await getCurrentEra();
 
