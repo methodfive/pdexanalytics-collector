@@ -45,7 +45,7 @@ export async function queryAsyncWithRetries(connectionPool, sql, params, then, r
     return connectionPool.promise().query(sql, params)
         .then(then)
         .catch((err) => {
-                if (retries_left >= 1 && err.code === 'ECONNRESET') {
+                if (retries_left >= 1 && (err.code === 'ECONNRESET' || err.code === 'EPIPE')) {
                     console.error({msg: 'Retrying query', retries_left, err})
                     return queryAsyncWithRetries(connectionPool, sql, params, then,retries_left - 1)
                 } else {
