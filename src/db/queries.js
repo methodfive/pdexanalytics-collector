@@ -1,4 +1,4 @@
-import {getAssetsFromMarket, getDateFromUtc, isEmpty, isMapEmpty} from "../util.js";
+import {convertBalance, getAssetsFromMarket, getDateFromUtc, isEmpty, isMapEmpty} from "../util.js";
 import {getConnection, queryAsyncWithRetries} from "./database.js";
 
 export async function saveAssets(assets)
@@ -23,14 +23,15 @@ export async function saveAsset(asset)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO assets (asset_id, symbol, name, price, tvl, is_active) values (?, ?, ?, ?, ?, ?) as new_data 
+            `INSERT INTO assets (asset_id, symbol, name, price, tvl, is_active, balance) values (?, ?, ?, ?, ?, ?, ?) as new_data 
              ON DUPLICATE KEY UPDATE 
                 symbol = new_data.symbol,
                 name = new_data.name,
                 price = IF(new_data.price is null, assets.price, new_data.price),
                 tvl = IF(new_data.tvl is null, assets.tvl, new_data.tvl),
-                is_active = new_data.is_active`,
-            [asset.asset_id, asset.symbol, asset.name, asset.price, asset.tvl, 1],
+                is_active = new_data.is_active,
+                balance = IF(new_data.balance is null, assets.balance, new_data.balance)`,
+            [asset.asset_id, asset.symbol, asset.name, asset.price, asset.tvl, 1, convertBalance(asset.balance)],
             ([rows,fields]) => {},
             1
         );

@@ -23,6 +23,14 @@ export function getAssetsFromMarket(market) {
     return market.split("-");
 }
 
+export function convertBalance(amount)
+{
+    if(isEmpty(amount))
+        return;
+
+    return (Number(amount) * Math.pow(10,-12)).toFixed(6);
+}
+
 export function convertAmountToReadable(amount)
 {
     if(isEmpty(amount))
