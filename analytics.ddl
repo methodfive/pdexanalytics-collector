@@ -2,6 +2,7 @@ DROP TABLE pdexanalytics.trades;
 DROP TABLE pdexanalytics.exchange_daily;
 DROP TABLE pdexanalytics.markets_daily;
 DROP TABLE pdexanalytics.assets_daily;
+DROP TABLE pdexanalytics.assets_hourly;
 DROP TABLE pdexanalytics.markets;
 DROP TABLE pdexanalytics.assets;
 
@@ -16,6 +17,7 @@ CREATE TABLE pdexanalytics.assets
   PRIMARY KEY (asset_id)
 );
 
+alter table assets add balance decimal(16,4) default null;
 ALTER TABLE assets ADD INDEX symbol_index (symbol);
 
 CREATE TABLE pdexanalytics.markets
@@ -80,6 +82,8 @@ CREATE TABLE pdexanalytics.assets_daily
   PRIMARY KEY (stat_date, asset_id)
 );
 
+alter table assets_daily add balance decimal(16,4) default null;
+
 CREATE TABLE pdexanalytics.assets_hourly
 (
   stat_time timestamp not null,
@@ -89,8 +93,5 @@ CREATE TABLE pdexanalytics.assets_hourly
   PRIMARY KEY (stat_time, asset_id)
 );
 
-ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);
-
-alter table assets add balance decimal(16,4) default null;
-alter table assets_daily add balance decimal(16,4) default null;
 alter table assets_hourly add balance decimal(16,4) default null;
+ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);
