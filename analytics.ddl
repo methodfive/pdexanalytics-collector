@@ -59,6 +59,10 @@ CREATE TABLE pdexanalytics.exchange_daily
   PRIMARY KEY (stat_date)
 );
 
+alter table exchange_daily add column total_holders int default null;
+alter table exchange_daily add column total_stakers int default null;
+
+
 CREATE TABLE pdexanalytics.markets_daily
 (
   stat_date date not null,

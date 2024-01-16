@@ -43,3 +43,9 @@ export function calculateTVL(amount, price)
 
     return (Number(amount) * Math.pow(10,-12) * Number(price)).toFixed(2);
 }
+
+export function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}

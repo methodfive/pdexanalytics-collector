@@ -19,6 +19,9 @@ export const UPDATE_TVL_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_USERS_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_STREAMS_FREQUENCY = 1000 * 60 * 1;
 export const TIME_BETWEEN_TIMERS = 1000 * 60 * 5;
+
 export const POLKADEX_SUBSCAN_EVENTS_URL = "https://polkadex.api.subscan.io/api/v2/scan/events";
+export const POLKADEX_SUBSCAN_HOLDERS_URL = "https://polkadex.api.subscan.io/api/scan/token/holders";
+export const POLKADEX_SUBSCAN_STATISTICS_URL = "https://polkadex.api.subscan.io/api/scan/accounts/statistics";
 
 export const DB_RETRIES = 3;

@@ -9,8 +9,8 @@ import {
     UPDATE_TVL_FREQUENCY, UPDATE_USERS_FREQUENCY,
     USDT_ASSETS
 } from "./constants.js";
-import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty} from "./util.js";
-import {getRegisteredUsers} from "./providers/subscan.js";
+import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty, sleep} from "./util.js";
+import {getRegisteredUsers, getTotalHolders, getTotalStakers} from "./providers/subscan.js";
 import {
     closeConnectionPool
 } from "./db/database.js";
@@ -133,13 +133,24 @@ export class Collector {
         try {
             let totalStaked = await getTotalStaked();
             let pdexPrice = this.getAssetPrice(PDEX_ASSET);
+pdexPrice = 1.2217;
 
             if(isEmpty(pdexPrice))
                 return;
 
             let stakedTvl = calculateTVL(totalStaked, pdexPrice);
 
-            await saveExchangeDaily({total_staked: convertAmountToReadable(totalStaked), staked_tvl: stakedTvl});
+            let totalHolders = await getTotalHolders();
+
+            await sleep(1000); //ensure we don't hit subscan api limits
+
+            let totalStakers = await getTotalStakers();
+
+            await saveExchangeDaily({
+                total_staked: convertAmountToReadable(totalStaked),
+                staked_tvl: stakedTvl,
+                total_holders: totalHolders,
+                total_stakers: totalStakers});
         }
         finally
         {
