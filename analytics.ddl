@@ -91,6 +91,6 @@ CREATE TABLE pdexanalytics.assets_hourly
 
 ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);
 
-alter table assets add balance decimal(16,6) default null;
-alter table assets_daily add balance decimal(16,6) default null;
-alter table assets_hourly add balance decimal(16,6) default null;
+alter table assets add balance decimal(16,4) default null;
+alter table assets_daily add balance decimal(16,4) default null;
+alter table assets_hourly add balance decimal(16,4) default null;
