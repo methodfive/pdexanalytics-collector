@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "MIT",
+  "license": "GPLV3",
   "dependencies": {
     "@polkadot/api": "^10.11.1",
     "apollo-link": "^1.2.2",
