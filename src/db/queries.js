@@ -1,5 +1,6 @@
 import {convertBalance, getAssetsFromMarket, getDateFromUtc, isEmpty, isMapEmpty} from "../util.js";
 import {getConnection, queryAsyncWithRetries} from "./database.js";
+import {DB_RETRIES} from "../constants.js";
 
 export async function saveAssets(assets)
 {
@@ -33,7 +34,7 @@ export async function saveAsset(asset)
                 balance = IF(new_data.balance is null, assets.balance, new_data.balance)`,
             [asset.asset_id, asset.symbol, asset.name, asset.price, asset.tvl, 1, convertBalance(asset.balance)],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -61,7 +62,7 @@ export async function saveExchangeDaily(stats)
             staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl)`,
             [new Date(), stats.users, stats.tvl, stats.total_staked, stats.staked_tvl],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -92,7 +93,7 @@ export async function saveTrade(trade)
             timestamp = new_data.timestamp`,
             [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, getDateFromUtc(trade.t)],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -118,7 +119,7 @@ export async function saveMarket(market)
             is_active = new_data.is_active`,
             [marketPairs[0], marketPairs[1], 1],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {

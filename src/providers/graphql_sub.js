@@ -80,6 +80,7 @@ export const createSubscriptionObservable = (wsurl, query, variables, onDisconne
 
 export async function closeStreams(streams) {
     try {
+        console.log("Closing steams");
         let client = getWsClient();
         for (let key of streams.keys()) {
             try {

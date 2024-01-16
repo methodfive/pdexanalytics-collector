@@ -1,4 +1,5 @@
 import {getConnection, queryAsyncWithRetries} from "./database.js";
+import {DB_RETRIES} from "../constants.js";
 
 export async function hourlyJob()
 {
@@ -15,7 +16,7 @@ export async function hourlyJob()
             `delete from assets_hourly where stat_time = ?`,
             [currentTime],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
 
         await queryAsyncWithRetries(connectionPool,
@@ -23,7 +24,7 @@ export async function hourlyJob()
         select ?, asset_id, tvl, price, balance from assets`,
             [currentTime],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
 
         await queryAsyncWithRetries(connectionPool,
@@ -35,7 +36,7 @@ export async function hourlyJob()
             staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -57,7 +58,7 @@ export async function nightlyJob()
             where stat_date = DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -71,7 +72,7 @@ export async function nightlyJob()
             `delete from trades where timestamp <= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -85,7 +86,7 @@ export async function nightlyJob()
             `delete from assets_hourly where stat_time <= DATE_SUB(CURTIME(), INTERVAL 7 DAY)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -99,7 +100,7 @@ export async function nightlyJob()
             `delete from markets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
 
         await queryAsyncWithRetries(connectionPool,
@@ -109,7 +110,7 @@ export async function nightlyJob()
                 group by base_asset_id, quote_asset_id, date(timestamp)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {
@@ -123,7 +124,7 @@ export async function nightlyJob()
             `delete from assets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
 
         await queryAsyncWithRetries(connectionPool,
@@ -138,7 +139,7 @@ group by quote_asset_id, date(stat_date)) stat_data
 group by stat_date, asset_id`,
             [],
             ([rows,fields]) => {},
-            1
+            DB_RETRIES
         );
     }
     catch(e) {

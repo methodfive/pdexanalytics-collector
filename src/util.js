@@ -11,9 +11,6 @@ export function getDateFromUtc(t) {
         return;
 
     return new Date(Number(t));
-    //let d = new Date(0);
-    //d.setUTCSeconds(t);
-    //return d;
 }
 
 export function getAssetsFromMarket(market) {
