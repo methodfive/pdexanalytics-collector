@@ -1,8 +1,12 @@
 ## pdexanalytics-collector
 
-To start the application you can run:
+## Installation
 
-### `npm start`
+`npm install`
+
+## To start the application
+
+`npm start`
 
 Required Environment Variables:
 
