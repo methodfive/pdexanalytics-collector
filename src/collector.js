@@ -18,6 +18,7 @@ import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_su
 import {CronJob} from "cron";
 import {saveAsset, saveAssets, saveExchangeDaily, saveMarket, saveTrade} from "./db/queries.js";
 import {hourlyJob, nightlyJob} from "./db/jobs.js";
+import {updateCaches} from "./db/caches.js";
 
 export class Collector {
     assets;
@@ -332,6 +333,15 @@ pdexPrice = 1.2217;
         new CronJob('0 35 * * * *',
             async function () {
                 await hourlyJob();
+            },
+            null,
+            true,
+            'Etc/UTC'
+        );
+
+        new CronJob('0 15,45 * * * *',
+            async function () {
+                await updateCaches();
             },
             null,
             true,

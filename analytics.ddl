@@ -1,5 +1,8 @@
 DROP TABLE pdexanalytics.trades;
 DROP TABLE pdexanalytics.exchange_hourly;
+DROP TABLE pdexanalytics.exchange_24h;
+DROP TABLE pdexanalytics.markets_24h;
+DROP TABLE pdexanalytics.assets_24h;
 DROP TABLE pdexanalytics.exchange_daily;
 DROP TABLE pdexanalytics.markets_daily;
 DROP TABLE pdexanalytics.assets_daily;
@@ -113,4 +116,54 @@ CREATE TABLE pdexanalytics.exchange_hourly
   total_holders int default null,
   total_stakers int default null,
   PRIMARY KEY (stat_time)
+);
+
+CREATE TABLE pdexanalytics.exchange_24h
+(
+  tvl decimal(12,2),
+  volume decimal(12,2),
+  users int,
+  trades int,
+  total_staked int default null,
+  staked_tvl decimal(12,2) default null,
+  total_holders int default null,
+  total_stakers int default null,
+  previous_tvl decimal(12,2),
+  previous_volume decimal(12,2),
+  previous_users int,
+  previous_trades int,
+  previous_total_staked int default null,
+  previous_staked_tvl decimal(12,2) default null,
+  previous_total_holders int default null,
+  previous_total_stakers int default null
+);
+
+CREATE TABLE pdexanalytics.assets_24h
+(
+  asset_id varchar(64) not null,
+  tvl decimal(12,2),
+  price decimal(20,10) not null,
+  balance decimal(16,4) default null,
+  volume decimal(12,2),
+  trades int,
+  previous_tvl decimal(12,2),
+  previous_price decimal(20,10) not null,
+  previous_balance decimal(16,4) default null,
+  previous_volume decimal(12,2),
+  previous_trades int,
+  PRIMARY KEY (asset_id)
+);
+
+
+CREATE TABLE pdexanalytics.markets_24h
+(
+  base_asset_id varchar(64) not null,
+  quote_asset_id varchar(64) not null,
+  volume decimal(12,2),
+  trades int,
+  previous_volume decimal(12,2),
+  previous_trades int,
+  PRIMARY KEY (base_asset_id, quote_asset_id),
+  FOREIGN KEY (base_asset_id) REFERENCES assets(asset_id),
+  FOREIGN KEY (quote_asset_id) REFERENCES assets(asset_id)
 );
