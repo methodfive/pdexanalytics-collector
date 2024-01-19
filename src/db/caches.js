@@ -63,20 +63,16 @@ previous_balance = coalesce(previous.balance,0),previous_volume = coalesce(ag2.p
 
         await queryAsyncWithRetries(connectionPool,
             `
-insert into exchange_24h (tvl, volume, users, trades, total_staked, staked_tvl, total_holders, 
-  total_stakers, previous_tvl, previous_volume, previous_users, previous_trades, previous_total_staked, previous_staked_tvl, 
-  previous_total_holders, previous_total_stakers) 
+update exchange_24h 
   
-  select coalesce(exchange_daily.tvl,0) as tvl, coalesce(ag1.volume,0) as volume, coalesce(exchange_daily.users,0) as users, coalesce(ag1.trades,0) as trades, 
-  coalesce(exchange_daily.total_staked,0) as total_staked, coalesce(exchange_daily.staked_tvl,0) as staked_tvl, 
-  coalesce(exchange_daily.total_holders,0) as total_holders, coalesce(exchange_daily.total_stakers,0) as total_stakers, 
-coalesce(previous_data.tvl,0) as previous_tvl, coalesce(ag2.prev_volume,0) as previous_volume, coalesce(previous_data.users,0) as previous_users, coalesce(ag2.prev_trades,0) as previous_trades, 
-  coalesce(previous_data.total_staked,0) as previous_total_staked, coalesce(previous_data.staked_tvl,0) as previous_staked_tvl, 
-  coalesce(previous_data.total_holders,0) as previous_total_holders, coalesce(previous_data.total_stakers,0) as previous_total_stakers 
-  from exchange_daily 
-  
+  cross join (
+   select max(exchange_daily.stat_date) as stat_date from exchange_daily
+   where exchange_daily.stat_date <= DATE_SUB(CURTIME(), INTERVAL 1 DAY)) previous_exchange_daily
+   
+join exchange_daily on exchange_daily.stat_date = previous_exchange_daily.stat_date 
+
 cross join (
-   select max(stat_time) as stat_time from exchange_hourly  
+   select max(exchange_hourly.stat_time) as stat_time from exchange_hourly  
    where exchange_hourly.stat_time <= DATE_SUB(CURTIME(), INTERVAL 1 DAY)) previous_stat_time 
 
 left outer join exchange_hourly as previous_data on previous_data.stat_time = previous_stat_time.stat_time 
@@ -90,16 +86,15 @@ cross join (
                 where timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) and
                 timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR) 
                 ) ag2 
-  order by exchange_daily.stat_date desc limit 1 
+
   
-  ON DUPLICATE KEY UPDATE 
-  tvl = coalesce(exchange_daily.tvl,0), volume = coalesce(ag1.volume,0), users = coalesce(exchange_daily.users,0), trades = coalesce(ag1.trades,0), 
-  total_staked = coalesce(exchange_daily.total_staked,0), staked_tvl = coalesce(exchange_daily.staked_tvl,0), 
-  total_holders = coalesce(exchange_daily.total_holders,0), total_stakers = coalesce(exchange_daily.total_stakers,0), 
-previous_tvl = coalesce(previous_data.tvl,0), previous_volume = coalesce(ag2.prev_volume,0), previous_users = coalesce(previous_data.users,0), previous_trades = coalesce(ag2.prev_trades,0), 
-  previous_total_staked = coalesce(previous_data.total_staked,0), previous_staked_tvl = coalesce(previous_data.staked_tvl,0), 
-  previous_total_holders = coalesce(previous_data.total_holders,0), previous_total_stakers = coalesce(previous_data.total_stakers,0)             
-            `,
+  set exchange_24h.tvl = coalesce(exchange_daily.tvl,0), exchange_24h.volume = coalesce(ag1.volume,0), exchange_24h.users = coalesce(exchange_daily.users,0), exchange_24h.trades = coalesce(ag1.trades,0), 
+  exchange_24h.total_staked = coalesce(exchange_daily.total_staked,0), exchange_24h.staked_tvl = coalesce(exchange_daily.staked_tvl,0), 
+  exchange_24h.total_holders = coalesce(exchange_daily.total_holders,0), exchange_24h.total_stakers = coalesce(exchange_daily.total_stakers,0), 
+exchange_24h.previous_tvl = coalesce(previous_data.tvl,0), previous_volume = coalesce(ag2.prev_volume,0), exchange_24h.previous_users = coalesce(previous_data.users,0), exchange_24h.previous_trades = coalesce(ag2.prev_trades,0), 
+  exchange_24h.previous_total_staked = coalesce(previous_data.total_staked,0), exchange_24h.previous_staked_tvl = coalesce(previous_data.staked_tvl,0), 
+  exchange_24h.previous_total_holders = coalesce(previous_data.total_holders,0), exchange_24h.previous_total_stakers = coalesce(previous_data.total_stakers,0)   
+             `,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
