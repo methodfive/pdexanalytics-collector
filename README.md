@@ -15,8 +15,7 @@ Required Environment Variables:
 * MYSQL_DB_USER
 * MYSQL_DB_PASSWORD
 * MYSQL_DB
-* MYSQL_DB_PROXY
 
 ## Deployment
 
-Use github actions to push to AWS
+Use github actions to push to AWS EC2 server

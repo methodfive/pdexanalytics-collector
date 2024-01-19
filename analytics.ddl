@@ -1,4 +1,5 @@
 DROP TABLE pdexanalytics.trades;
+DROP TABLE pdexanalytics.exchange_hourly;
 DROP TABLE pdexanalytics.exchange_daily;
 DROP TABLE pdexanalytics.markets_daily;
 DROP TABLE pdexanalytics.assets_daily;
