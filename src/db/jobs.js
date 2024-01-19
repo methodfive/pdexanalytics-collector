@@ -13,6 +13,21 @@ export async function hourlyJob()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
+            `delete from exchange_hourly where stat_time = ?`,
+            [currentTime],
+            ([rows,fields]) => {},
+            DB_RETRIES
+        );
+
+        await queryAsyncWithRetries(connectionPool,
+            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers)
+        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily order by stat_date desc limit 1`,
+            [currentTime],
+            ([rows,fields]) => {},
+            DB_RETRIES
+        );
+
+        await queryAsyncWithRetries(connectionPool,
             `delete from assets_hourly where stat_time = ?`,
             [currentTime],
             ([rows,fields]) => {},
@@ -70,6 +85,20 @@ export async function nightlyJob()
 
         await queryAsyncWithRetries(connectionPool,
             `delete from trades where timestamp <= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
+            [],
+            ([rows,fields]) => {},
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.log("Error performing delete job",e);
+    }
+
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `delete from exchange_hourly where stat_time <= DATE_SUB(CURTIME(), INTERVAL 7 DAY)`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES

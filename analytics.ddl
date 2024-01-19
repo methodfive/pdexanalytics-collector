@@ -99,3 +99,17 @@ CREATE TABLE pdexanalytics.assets_hourly
 
 alter table assets_hourly add balance decimal(16,4) default null;
 ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);
+
+CREATE TABLE pdexanalytics.exchange_hourly
+(
+  stat_time timestamp not null,
+  tvl decimal(12,2),
+  volume decimal(12,2),
+  users int,
+  trades int,
+  total_staked int default null,
+  staked_tvl decimal(12,2) default null,
+  total_holders int default null,
+  total_stakers int default null,
+  PRIMARY KEY (stat_time)
+);
