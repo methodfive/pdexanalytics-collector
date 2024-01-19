@@ -17,11 +17,11 @@ CREATE TABLE pdexanalytics.assets
   name varchar(60) not null,
   price decimal(20,10),
   tvl decimal(12,2),
+  balance decimal(16,4)
   is_active bit not null,
   PRIMARY KEY (asset_id)
 );
 
-alter table assets add balance decimal(16,4) default null;
 ALTER TABLE assets ADD INDEX symbol_index (symbol);
 
 CREATE TABLE pdexanalytics.markets
@@ -60,12 +60,10 @@ CREATE TABLE pdexanalytics.exchange_daily
   trades int,
   total_staked int,
   staked_tvl decimal(12,2),
+  total_holders int,
+  total_stakers int,
   PRIMARY KEY (stat_date)
 );
-
-alter table exchange_daily add column total_holders int default null;
-alter table exchange_daily add column total_stakers int default null;
-
 
 CREATE TABLE pdexanalytics.markets_daily
 (
@@ -79,6 +77,8 @@ CREATE TABLE pdexanalytics.markets_daily
   FOREIGN KEY (quote_asset_id) REFERENCES assets(asset_id)
 );
 
+ALTER TABLE markets_daily ADD INDEX market_pair_index (base_asset_id, quote_asset_id);
+
 CREATE TABLE pdexanalytics.assets_daily
 (
   stat_date date not null,
@@ -87,10 +87,11 @@ CREATE TABLE pdexanalytics.assets_daily
   price decimal(20,10) not null,
   volume decimal(12,2),
   trades int,
+  balance decimal(16,4)
   PRIMARY KEY (stat_date, asset_id)
 );
 
-alter table assets_daily add balance decimal(16,4) default null;
+ALTER TABLE assets_daily ADD INDEX asset_index (asset_id);
 
 CREATE TABLE pdexanalytics.assets_hourly
 (
@@ -98,10 +99,10 @@ CREATE TABLE pdexanalytics.assets_hourly
   asset_id varchar(64) not null,
   tvl decimal(12,2),
   price decimal(20,10) not null,
+  balance decimal(16,4),
   PRIMARY KEY (stat_time, asset_id)
 );
 
-alter table assets_hourly add balance decimal(16,4) default null;
 ALTER TABLE assets_hourly ADD INDEX asset_index (asset_id);
 
 CREATE TABLE pdexanalytics.exchange_hourly
