@@ -139,6 +139,8 @@ CREATE TABLE pdexanalytics.exchange_24h
   previous_total_stakers int default null
 );
 
+INSERT INTO pdexanalytics.exchange_24h () VALUES();
+
 CREATE TABLE pdexanalytics.assets_24h
 (
   asset_id varchar(64) not null,
