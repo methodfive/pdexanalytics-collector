@@ -28,12 +28,16 @@ export async function hourlyJob()
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl) values (CURDATE(), null, (select sum(tvl) from assets), null, null) as new_data
-         ON DUPLICATE KEY UPDATE 
-            users = IF(new_data.users is null, exchange_daily.users, new_data.users),
-            tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
-            total_staked = IF(new_data.total_staked is null, exchange_daily.total_staked, new_data.total_staked),
-            staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl)`,
+            `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers)
+select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily old_exchange_daily order by stat_date desc limit 1
+ON DUPLICATE KEY UPDATE 
+            tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
+            users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
+            total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
+            staked_tvl = IF(exchange_daily.staked_tvl is null, old_exchange_daily.staked_tvl, exchange_daily.staked_tvl),
+            total_holders = IF(exchange_daily.total_holders is null, old_exchange_daily.total_holders, exchange_daily.total_holders),
+            total_stakers = IF(exchange_daily.total_stakers is null, old_exchange_daily.total_stakers, exchange_daily.total_stakers)
+            `,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
