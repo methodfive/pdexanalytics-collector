@@ -104,14 +104,14 @@ export class Collector {
         try {
             await getAssetBalances(this.assets, LMP_WALLET);
 
-            let totalTVL = 0;
+            //let totalTVL = 0;
             for (let key of this.assets.keys()) {
                 let asset = this.assets.get(key);
                 this.updateAssetTVL(asset);
 
                 if(asset.tvl != null) {
                     await saveAsset(asset);
-                    totalTVL += Number(asset.tvl);
+                    //totalTVL += Number(asset.tvl);
                 }
             }
 

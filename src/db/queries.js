@@ -54,7 +54,7 @@ export async function saveExchangeDaily(stats)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers) values (?, ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
             tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
@@ -63,7 +63,7 @@ export async function saveExchangeDaily(stats)
             total_holders = IF(new_data.total_holders is null, exchange_daily.total_holders, new_data.total_holders),
             total_stakers = IF(new_data.total_stakers is null, exchange_daily.total_stakers, new_data.total_stakers)
             `,
-            [new Date(), stats.users, stats.tvl, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers ],
+            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers ],
             ([rows,fields]) => {},
             DB_RETRIES
         );
