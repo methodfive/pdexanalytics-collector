@@ -40,7 +40,7 @@ coalesce(previous.tvl,0) as previous_tvl, coalesce(previous.price,0) as previous
  from assets 
  left outer join (
  select max(stat_time) as stat_time, asset_id from assets_hourly 
-   where assets_hourly.stat_time <= DATE_SUB(CURTIME(), INTERVAL 1 DAY) group by asset_id) 
+   where assets_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY) group by asset_id) 
 previous_stat_time on previous_stat_time.asset_id = assets.asset_id
  left outer join assets_hourly as previous on previous.asset_id = assets.asset_id and previous.stat_time = previous_stat_time.stat_time 
  left outer join (
@@ -87,7 +87,7 @@ join exchange_daily on exchange_daily.stat_date = previous_exchange_daily.stat_d
 
 cross join (
    select max(exchange_hourly.stat_time) as stat_time from exchange_hourly  
-   where exchange_hourly.stat_time <= DATE_SUB(CURTIME(), INTERVAL 1 DAY)) previous_stat_time 
+   where exchange_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)) previous_stat_time 
 
 left outer join exchange_hourly as previous_data on previous_data.stat_time = previous_stat_time.stat_time 
 

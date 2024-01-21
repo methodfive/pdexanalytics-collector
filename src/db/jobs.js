@@ -109,7 +109,7 @@ export async function nightlyJob()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `delete from exchange_hourly where stat_time <= DATE_SUB(CURTIME(), INTERVAL 7 DAY)`,
+            `delete from exchange_hourly where stat_time <= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -123,7 +123,7 @@ export async function nightlyJob()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `delete from assets_hourly where stat_time <= DATE_SUB(CURTIME(), INTERVAL 7 DAY)`,
+            `delete from assets_hourly where stat_time <= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
