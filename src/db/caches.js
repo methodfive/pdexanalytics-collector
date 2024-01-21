@@ -1,5 +1,6 @@
 import {getConnection, queryAsyncWithRetries} from "./database.js";
 import {DB_RETRIES} from "../constants.js";
+import {newExchangeDailyDay} from "./jobs.js";
 
 export async function updateCaches()
 {
@@ -73,14 +74,15 @@ previous_balance = coalesce(previous.balance,0),previous_volume = coalesce(ag2.v
             DB_RETRIES
         );
 
+        await newExchangeDailyDay(connectionPool);
+
         await queryAsyncWithRetries(connectionPool,
             `
 update exchange_24h 
   
   cross join (
-   select max(exchange_daily.stat_date) as stat_date from exchange_daily
-   where exchange_daily.stat_date <= DATE_SUB(CURTIME(), INTERVAL 1 DAY)) previous_exchange_daily
-   
+   select max(exchange_daily.stat_date) as stat_date from exchange_daily) previous_exchange_daily
+
 join exchange_daily on exchange_daily.stat_date = previous_exchange_daily.stat_date 
 
 cross join (

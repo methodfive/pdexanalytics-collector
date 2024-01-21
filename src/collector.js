@@ -126,6 +126,7 @@ export class Collector {
 
     async updateStaked()
     {
+        console.log("updateStaked");
         if(this.inUpdateStaked)
             return;
 
@@ -134,7 +135,6 @@ export class Collector {
         try {
             let totalStaked = await getTotalStaked();
             let pdexPrice = this.getAssetPrice(PDEX_ASSET);
-pdexPrice = 1.2217;
 
             if(isEmpty(pdexPrice))
                 return;
@@ -330,7 +330,7 @@ pdexPrice = 1.2217;
             'Etc/UTC'
         );
 
-        new CronJob('0 35 * * * *',
+        new CronJob('0 10 * * * *',
             async function () {
                 await hourlyJob();
             },

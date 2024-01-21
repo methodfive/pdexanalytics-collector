@@ -27,21 +27,7 @@ export async function hourlyJob()
             DB_RETRIES
         );
 
-        await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers)
-select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily old_exchange_daily order by stat_date desc limit 1
-ON DUPLICATE KEY UPDATE 
-            tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
-            users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
-            total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
-            staked_tvl = IF(exchange_daily.staked_tvl is null, old_exchange_daily.staked_tvl, exchange_daily.staked_tvl),
-            total_holders = IF(exchange_daily.total_holders is null, old_exchange_daily.total_holders, exchange_daily.total_holders),
-            total_stakers = IF(exchange_daily.total_stakers is null, old_exchange_daily.total_stakers, exchange_daily.total_stakers)
-            `,
-            [],
-            ([rows,fields]) => {},
-            DB_RETRIES
-        );
+        await newExchangeDailyDay(connectionPool); //ensure exchange_daily exists for current day
 
         await queryAsyncWithRetries(connectionPool,
             `delete from exchange_hourly where stat_time = ?`,
@@ -63,6 +49,25 @@ ON DUPLICATE KEY UPDATE
     }
 }
 
+export async function newExchangeDailyDay(connectionPool)
+{
+    await queryAsyncWithRetries(connectionPool,
+        `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers)
+select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
+ON DUPLICATE KEY UPDATE 
+            tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
+            users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
+            total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
+            staked_tvl = IF(exchange_daily.staked_tvl is null, old_exchange_daily.staked_tvl, exchange_daily.staked_tvl),
+            total_holders = IF(exchange_daily.total_holders is null, old_exchange_daily.total_holders, exchange_daily.total_holders),
+            total_stakers = IF(exchange_daily.total_stakers is null, old_exchange_daily.total_stakers, exchange_daily.total_stakers)
+            `,
+        [],
+        ([rows,fields]) => {},
+        DB_RETRIES
+    );
+}
+
 export async function nightlyJob()
 {
     console.log("Night job");
@@ -79,6 +84,8 @@ export async function nightlyJob()
             ([rows,fields]) => {},
             DB_RETRIES
         );
+
+        await newExchangeDailyDay(connectionPool);
     }
     catch(e) {
         console.log("Error performing exchange_daily job",e);
