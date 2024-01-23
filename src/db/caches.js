@@ -4,28 +4,39 @@ import {newExchangeDailyDay} from "./jobs.js";
 
 export async function updateCaches()
 {
-    console.log("caches");
+    console.log("Updating cached data for dashboard");
     try {
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into markets_24h (base_asset_id, quote_asset_id, trades, volume, previous_trades, previous_volume)
-select markets.base_asset_id, markets.quote_asset_id, coalesce(ag1.trades,0) as trades, coalesce(ag1.volume,0) as volume, 
-coalesce(ag2.trades,0) as previous_trades, coalesce(ag2.volume,0) as previous_volume from markets
- join assets a1 on a1.asset_id = markets.base_asset_id 
- join assets a2 on a2.asset_id = markets.quote_asset_id
- left outer join (
-                select count(*) as trades,sum(volume) as volume, base_asset_id, quote_asset_id from trades
-                where timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) 
-                group by base_asset_id, quote_asset_id 
-                ) ag1 on ag1.base_asset_id = markets.base_asset_id and ag1.quote_asset_id = markets.quote_asset_id 
- left outer join (
-                select count(*) as trades,sum(volume) as volume, base_asset_id, quote_asset_id from trades
-                where timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) and
-                timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR) 
-                group by base_asset_id, quote_asset_id 
-                ) ag2 on ag2.base_asset_id = markets.base_asset_id and ag2.quote_asset_id = markets.quote_asset_id 
-ON DUPLICATE KEY UPDATE trades=coalesce(ag1.trades,0), volume=coalesce(ag1.volume,0), previous_trades=coalesce(ag2.trades,0), previous_volume=coalesce(ag2.volume,0) `,
+            `
+INSERT INTO markets_24h (base_asset_id, quote_asset_id, trades, volume, previous_trades, previous_volume) 
+SELECT 
+    markets.base_asset_id, 
+    markets.quote_asset_id, 
+    COALESCE(ag1.trades,0) AS trades, 
+    COALESCE(ag1.volume,0) AS volume, 
+    COALESCE(ag2.trades,0) AS previous_trades, 
+    COALESCE(ag2.volume,0) AS previous_volume 
+FROM markets 
+JOIN assets a1 ON a1.asset_id = markets.base_asset_id 
+JOIN assets a2 ON a2.asset_id = markets.quote_asset_id 
+LEFT OUTER JOIN ( 
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, base_asset_id, quote_asset_id FROM trades 
+    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR)  
+    GROUP BY base_asset_id, quote_asset_id 
+) ag1 ON ag1.base_asset_id = markets.base_asset_id AND ag1.quote_asset_id = markets.quote_asset_id 
+LEFT OUTER JOIN ( 
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, base_asset_id, quote_asset_id FROM trades 
+    WHERE timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR) 
+    GROUP BY base_asset_id, quote_asset_id 
+) ag2 ON ag2.base_asset_id = markets.base_asset_id AND ag2.quote_asset_id = markets.quote_asset_id 
+ON DUPLICATE KEY UPDATE 
+    trades = COALESCE(ag1.trades,0), 
+    volume = COALESCE(ag1.volume,0), 
+    previous_trades = COALESCE(ag2.trades,0), 
+    previous_volume = COALESCE(ag2.volume,0) 
+`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -33,41 +44,61 @@ ON DUPLICATE KEY UPDATE trades=coalesce(ag1.trades,0), volume=coalesce(ag1.volum
 
         await queryAsyncWithRetries(connectionPool,
             `
-insert into assets_24h(asset_id, tvl, price, balance, volume, trades, previous_tvl, previous_price, previous_balance, previous_volume, previous_trades)  
+INSERT INTO assets_24h(asset_id, tvl, price, balance, volume, trades, previous_tvl, previous_price, previous_balance, previous_volume, previous_trades)   
+SELECT assets.asset_id, 
+    COALESCE(assets.tvl, 0) AS tvl, 
+    COALESCE(assets.price,0) AS price, 
+    assets.balance, 
+    COALESCE(ag1.volume,0) AS volume, 
+    COALESCE(ag1.trades,0) AS trades, 
+    COALESCE(previous.tvl,0) AS previous_tvl, 
+    COALESCE(previous.price,0) AS previous_price, 
+    COALESCE(previous.balance,0) AS previous_balance, 
+    COALESCE(ag2.volume, 0) AS previous_volume,  
+    COALESCE(ag2.trades, 0) AS previous_trades 
+ FROM assets 
+ LEFT OUTER JOIN ( 
+    SELECT MAX(stat_time) AS stat_time, asset_id FROM assets_hourly 
+    WHERE assets_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY) 
+    GROUP BY asset_id) previous_stat_time ON previous_stat_time.asset_id = assets.asset_id 
+ LEFT OUTER JOIN 
+    assets_hourly AS previous ON previous.asset_id = assets.asset_id AND previous.stat_time = previous_stat_time.stat_time 
+ LEFT OUTER JOIN ( 
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, base_asset_id AS asset_id 
+    FROM trades 
+    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) 
+    GROUP BY base_asset_id 
 
-select assets.asset_id, coalesce(assets.tvl, 0) as tvl, coalesce(assets.price,0) as price, assets.balance, coalesce(ag1.volume,0) as volume, coalesce(ag1.trades,0) as trades, 
-coalesce(previous.tvl,0) as previous_tvl, coalesce(previous.price,0) as previous_price, coalesce(previous.balance,0) as previous_balance, coalesce(ag2.volume, 0) as previous_volume,  coalesce(ag2.trades, 0) as previous_trades 
- from assets 
- left outer join (
- select max(stat_time) as stat_time, asset_id from assets_hourly 
-   where assets_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY) group by asset_id) 
-previous_stat_time on previous_stat_time.asset_id = assets.asset_id
- left outer join assets_hourly as previous on previous.asset_id = assets.asset_id and previous.stat_time = previous_stat_time.stat_time 
- left outer join (
-                select count(*) as trades,sum(volume) as volume, base_asset_id as asset_id from trades
-                where timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) group by base_asset_id
-
-                union
+    UNION 
                 
-                select count(*) as trades,sum(volume) as volume, quote_asset_id as asset_id from trades
-                where timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) group by quote_asset_id
-) ag1 on ag1.asset_id = assets.asset_id 
- left outer join (
-                 select count(*) as trades,sum(volume) as volume, base_asset_id as asset_id from trades
-                where timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) and
-                timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)  group by base_asset_id
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, quote_asset_id AS asset_id 
+    FROM trades 
+    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) GROUP BY quote_asset_id 
+) ag1 ON ag1.asset_id = assets.asset_id 
+LEFT OUTER JOIN ( 
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, base_asset_id AS asset_id 
+    FROM trades 
+    WHERE timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)  
+    GROUP BY base_asset_id 
 
-                union
+    UNION 
                 
-                select count(*) as trades,sum(volume) as volume, quote_asset_id as asset_id from trades
-                where timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) and
-                timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)  group by quote_asset_id
-) ag2 on ag2.asset_id = assets.asset_id
-ON DUPLICATE KEY 
-UPDATE tvl=coalesce(assets.tvl, 0), price = coalesce(assets.price,0), balance = assets.balance, volume = coalesce(ag1.volume,0), 
-trades = coalesce(ag1.trades,0),  previous_tvl = coalesce(previous.tvl,0), previous_price = coalesce(previous.price,0), 
-previous_balance = coalesce(previous.balance,0),previous_volume = coalesce(ag2.volume, 0), previous_trades = coalesce(ag2.trades, 0)
-
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, quote_asset_id AS asset_id 
+    FROM trades 
+    WHERE timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)  
+    GROUP BY quote_asset_id 
+) ag2 ON ag2.asset_id = assets.asset_id 
+ON DUPLICATE KEY UPDATE 
+    tvl = COALESCE(assets.tvl, 0), 
+    price = COALESCE(assets.price,0), 
+    balance = assets.balance, 
+    volume = COALESCE(ag1.volume,0), 
+    trades = COALESCE(ag1.trades,0),  
+    previous_tvl = COALESCE(previous.tvl,0), 
+    previous_price = COALESCE(previous.price,0), 
+    previous_balance = COALESCE(previous.balance,0),
+    previous_volume = COALESCE(ag2.volume, 0), 
+    previous_trades = COALESCE(ag2.trades, 0)
 `,
             [],
             ([rows,fields]) => {},
@@ -78,37 +109,38 @@ previous_balance = coalesce(previous.balance,0),previous_volume = coalesce(ag2.v
 
         await queryAsyncWithRetries(connectionPool,
             `
-update exchange_24h 
-  
-  cross join (
-   select max(exchange_daily.stat_date) as stat_date from exchange_daily) previous_exchange_daily
-
-join exchange_daily on exchange_daily.stat_date = previous_exchange_daily.stat_date 
-
-cross join (
-   select max(exchange_hourly.stat_time) as stat_time from exchange_hourly  
-   where exchange_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)) previous_stat_time 
-
-left outer join exchange_hourly as previous_data on previous_data.stat_time = previous_stat_time.stat_time 
-
-cross join (
-                select count(*) as trades,sum(volume) as volume from trades
-                where timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) 
-                ) ag1 
-cross join (
-                select count(*) as prev_trades,sum(volume) as prev_volume from trades
-                where timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) and
-                timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR) 
-                ) ag2 
-
-  
-  set exchange_24h.tvl = coalesce(exchange_daily.tvl,0), exchange_24h.volume = coalesce(ag1.volume,0), exchange_24h.users = coalesce(exchange_daily.users,0), exchange_24h.trades = coalesce(ag1.trades,0), 
-  exchange_24h.total_staked = coalesce(exchange_daily.total_staked,0), exchange_24h.staked_tvl = coalesce(exchange_daily.staked_tvl,0), 
-  exchange_24h.total_holders = coalesce(exchange_daily.total_holders,0), exchange_24h.total_stakers = coalesce(exchange_daily.total_stakers,0), 
-exchange_24h.previous_tvl = coalesce(previous_data.tvl,0), previous_volume = coalesce(ag2.prev_volume,0), exchange_24h.previous_users = coalesce(previous_data.users,0), exchange_24h.previous_trades = coalesce(ag2.prev_trades,0), 
-  exchange_24h.previous_total_staked = coalesce(previous_data.total_staked,0), exchange_24h.previous_staked_tvl = coalesce(previous_data.staked_tvl,0), 
-  exchange_24h.previous_total_holders = coalesce(previous_data.total_holders,0), exchange_24h.previous_total_stakers = coalesce(previous_data.total_stakers,0)   
-             `,
+UPDATE exchange_24h 
+CROSS JOIN (SELECT MAX(exchange_daily.stat_date) AS stat_date FROM exchange_daily) previous_exchange_daily 
+JOIN exchange_daily ON exchange_daily.stat_date = previous_exchange_daily.stat_date 
+CROSS JOIN ( 
+    SELECT MAX(exchange_hourly.stat_time) AS stat_time FROM exchange_hourly 
+    WHERE exchange_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)) previous_stat_time
+LEFT OUTER JOIN exchange_hourly AS previous_data ON previous_data.stat_time = previous_stat_time.stat_time
+CROSS JOIN (
+    SELECT COUNT(*) AS trades, SUM(volume) AS volume 
+    FROM trades
+    WHERE timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR)) ag1
+CROSS JOIN (SELECT COUNT(*) AS prev_trades, SUM(volume) AS prev_volume
+    FROM trades
+    WHERE timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)) ag2 
+SET 
+    exchange_24h.tvl = COALESCE(exchange_daily.tvl, 0),
+    exchange_24h.volume = COALESCE(ag1.volume, 0),
+    exchange_24h.users = COALESCE(exchange_daily.users, 0),
+    exchange_24h.trades = COALESCE(ag1.trades, 0),
+    exchange_24h.total_staked = COALESCE(exchange_daily.total_staked, 0),
+    exchange_24h.staked_tvl = COALESCE(exchange_daily.staked_tvl, 0),
+    exchange_24h.total_holders = COALESCE(exchange_daily.total_holders, 0),
+    exchange_24h.total_stakers = COALESCE(exchange_daily.total_stakers, 0),
+    exchange_24h.previous_tvl = COALESCE(previous_data.tvl, 0),
+    previous_volume = COALESCE(ag2.prev_volume, 0),
+    exchange_24h.previous_users = COALESCE(previous_data.users, 0),
+    exchange_24h.previous_trades = COALESCE(ag2.prev_trades, 0),
+    exchange_24h.previous_total_staked = COALESCE(previous_data.total_staked, 0),
+    exchange_24h.previous_staked_tvl = COALESCE(previous_data.staked_tvl, 0),
+    exchange_24h.previous_total_holders = COALESCE(previous_data.total_holders, 0),
+    exchange_24h.previous_total_stakers = COALESCE(previous_data.total_stakers, 0)
+`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
