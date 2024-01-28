@@ -37,8 +37,8 @@ export async function hourlyJob()
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers)
-        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily order by stat_date desc limit 1`,
+            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, treasury_balance, treasury_tvl)
+        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, treasury_balance, treasury_tvl from exchange_daily order by stat_date desc limit 1`,
             [currentTime],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -52,15 +52,17 @@ export async function hourlyJob()
 export async function newExchangeDailyDay(connectionPool)
 {
     await queryAsyncWithRetries(connectionPool,
-        `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers)
-select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
+        `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers, treasury_balance, treasury_tvl)
+select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers, treasury_balance, treasury_tvl from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
 ON DUPLICATE KEY UPDATE 
             tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
             users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
             total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
             staked_tvl = IF(exchange_daily.staked_tvl is null, old_exchange_daily.staked_tvl, exchange_daily.staked_tvl),
             total_holders = IF(exchange_daily.total_holders is null, old_exchange_daily.total_holders, exchange_daily.total_holders),
-            total_stakers = IF(exchange_daily.total_stakers is null, old_exchange_daily.total_stakers, exchange_daily.total_stakers)
+            total_stakers = IF(exchange_daily.total_stakers is null, old_exchange_daily.total_stakers, exchange_daily.total_stakers),
+            treasury_balance = IF(exchange_daily.treasury_balance is null, old_exchange_daily.treasury_balance, exchange_daily.treasury_balance),
+            treasury_tvl = IF(exchange_daily.treasury_tvl is null, old_exchange_daily.treasury_tvl, exchange_daily.treasury_tvl)
             `,
         [],
         ([rows,fields]) => {},

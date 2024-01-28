@@ -170,3 +170,12 @@ CREATE TABLE pdexanalytics.markets_24h
   FOREIGN KEY (base_asset_id) REFERENCES assets(asset_id),
   FOREIGN KEY (quote_asset_id) REFERENCES assets(asset_id)
 );
+
+alter table exchange_daily add treasury_balance int null;
+alter table exchange_daily add treasury_tvl decimal(12,2) null;
+alter table exchange_hourly add treasury_balance int null;
+alter table exchange_hourly add treasury_tvl decimal(12,2) null;
+alter table exchange_24h add treasury_balance int null;
+alter table exchange_24h add treasury_tvl decimal(12,2) null;
+alter table exchange_24h add previous_treasury_balance int null;
+alter table exchange_24h add previous_treasury_tvl decimal(12,2) null;

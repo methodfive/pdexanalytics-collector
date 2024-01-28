@@ -132,6 +132,8 @@ SET
     exchange_24h.staked_tvl = COALESCE(exchange_daily.staked_tvl, 0),
     exchange_24h.total_holders = COALESCE(exchange_daily.total_holders, 0),
     exchange_24h.total_stakers = COALESCE(exchange_daily.total_stakers, 0),
+    exchange_24h.treasury_balance = COALESCE(exchange_daily.treasury_balance, 0),
+    exchange_24h.treasury_tvl = COALESCE(exchange_daily.treasury_tvl, 0),
     exchange_24h.previous_tvl = COALESCE(previous_data.tvl, 0),
     previous_volume = COALESCE(ag2.prev_volume, 0),
     exchange_24h.previous_users = COALESCE(previous_data.users, 0),
@@ -139,7 +141,9 @@ SET
     exchange_24h.previous_total_staked = COALESCE(previous_data.total_staked, 0),
     exchange_24h.previous_staked_tvl = COALESCE(previous_data.staked_tvl, 0),
     exchange_24h.previous_total_holders = COALESCE(previous_data.total_holders, 0),
-    exchange_24h.previous_total_stakers = COALESCE(previous_data.total_stakers, 0)
+    exchange_24h.previous_total_stakers = COALESCE(previous_data.total_stakers, 0),
+    exchange_24h.previous_treasury_balance = COALESCE(previous_data.treasury_balance, 0),
+    exchange_24h.previous_treasury_tvl = COALESCE(previous_data.treasury_tvl, 0)
 `,
             [],
             ([rows,fields]) => {},

@@ -1,10 +1,10 @@
 import "@polkadot/api-augment"
 import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
-import {closeRpcProvider, getAssetBalances, getTotalStaked} from "./providers/mainnet.js";
+import {closeRpcProvider, getAssetBalances, getPDEXBalance, getTotalStaked} from "./providers/mainnet.js";
 import {
     FILTERED_ASSETS,
     LMP_WALLET,
-    PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, UPDATE_MAINNET_FREQUENCY,
+    PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, TREASURY_WALLET, UPDATE_MAINNET_FREQUENCY,
     UPDATE_ORDERBOOK_FREQUENCY,
     UPDATE_STREAMS_FREQUENCY,
     UPDATE_SUBSCAN_FREQUENCY,
@@ -33,33 +33,77 @@ export class Collector {
 
     streamDisconnectFlag;
     streamOkToReconnect;
-    inUpdateTVL;
+
+    inUpdateSubscan;
+    inUpdateOrderBook;
+    inUpdateMainnet;
     inStartSubscriptions;
 
     constructor() {
         this.streams = new Map();
         this.streamDisconnectFlag = false;
         this.streamOkToReconnect = false;
-        this.inUpdateTVL = false;
+
+        this.inUpdateSubscan = false;
+        this.inUpdateOrderBook = false;
+        this.inUpdateMainnet = false;
         this.inStartSubscriptions = false;
+
         this.handleShutdown();
     }
 
     async updateSubscanData() {
-        await this.updateUsers();
+        if(this.inUpdateSubscan)
+            return;
 
-        await sleep(SUBSCAN_RATELIMIT_PAUSE); //ensure we don't hit subscan api limits
+        this.inUpdateSubscan = true;
 
-        await this.updateStaked();
+        try {
+            await this.updateUsers();
+
+            await sleep(SUBSCAN_RATELIMIT_PAUSE);
+
+            await this.updateStaked();
+
+            await sleep(SUBSCAN_RATELIMIT_PAUSE);
+
+            await this.updateTreasury();
+        }
+        finally
+        {
+            this.inUpdateSubscan = false;
+        }
     }
 
     async updateOrderBookData() {
-        await this.updateAssets();
-        await this.updateMarkets();
+        if(this.inUpdateOrderBook)
+            return;
+
+        this.inUpdateOrderBook = true;
+
+        try {
+            await this.updateAssets();
+            await this.updateMarkets();
+        }
+        finally
+        {
+            this.inUpdateOrderBook = false;
+        }
     }
 
     async updateMainnetData() {
-        await this.updateTVL();
+        if(this.inUpdateMainnet)
+            return;
+
+        this.inUpdateMainnet = true;
+
+        try {
+            await this.updateTVL();
+        }
+        finally
+        {
+            this.inUpdateMainnet = false;
+        }
     }
 
     async updateUsers() {
@@ -111,62 +155,62 @@ export class Collector {
         if(isMapEmpty(this.assets))
             return;
 
-        if(this.inUpdateTVL)
-            return;
+        await getAssetBalances(this.assets, LMP_WALLET);
 
-        this.inUpdateTVL = true;
-        try {
-            await getAssetBalances(this.assets, LMP_WALLET);
+        for (let key of this.assets.keys()) {
+            let asset = this.assets.get(key);
+            this.updateAssetTVL(asset);
 
-            //let totalTVL = 0;
-            for (let key of this.assets.keys()) {
-                let asset = this.assets.get(key);
-                this.updateAssetTVL(asset);
-
-                if(asset.tvl != null) {
-                    await saveAsset(asset);
-                }
+            if(asset.tvl != null) {
+                await saveAsset(asset);
             }
-        }
-        finally
-        {
-            this.inUpdateTVL = false;
         }
     }
 
     async updateStaked()
     {
         console.log("updateStaked");
-        if(this.inUpdateStaked)
+
+        let totalStaked = await getTotalStaked();
+        let pdexPrice = this.getAssetPrice(PDEX_ASSET);
+
+        if(isEmpty(pdexPrice))
             return;
 
-        this.inUpdateStaked = true;
+        let stakedTvl = calculateTVL(totalStaked, pdexPrice);
 
-        try {
-            let totalStaked = await getTotalStaked();
-            let pdexPrice = this.getAssetPrice(PDEX_ASSET);
+        let totalHolders = await getTotalHolders();
 
-            if(isEmpty(pdexPrice))
-                return;
+        await sleep(SUBSCAN_RATELIMIT_PAUSE);
 
-            let stakedTvl = calculateTVL(totalStaked, pdexPrice);
+        let totalStakers = await getTotalStakers();
 
-            let totalHolders = await getTotalHolders();
+        await saveExchangeDaily({
+            total_staked: convertAmountToReadable(totalStaked),
+            staked_tvl: stakedTvl,
+            total_holders: totalHolders,
+            total_stakers: totalStakers});
+    }
 
-            await sleep(SUBSCAN_RATELIMIT_PAUSE); //ensure we don't hit subscan api limits
+    async updateTreasury()
+    {
+        console.log("updateTreasury");
 
-            let totalStakers = await getTotalStakers();
+        let pdexPrice = this.getAssetPrice(PDEX_ASSET);
 
-            await saveExchangeDaily({
-                total_staked: convertAmountToReadable(totalStaked),
-                staked_tvl: stakedTvl,
-                total_holders: totalHolders,
-                total_stakers: totalStakers});
-        }
-        finally
-        {
-            this.inUpdateStaked = false;
-        }
+        if(isEmpty(pdexPrice))
+            return;
+
+        let treasuryBalance = await getPDEXBalance(TREASURY_WALLET);
+
+        if(treasuryBalance == null)
+            return;
+
+        let treasuryValue = calculateTVL(treasuryBalance, pdexPrice);
+
+        await saveExchangeDaily({
+            treasury_balance: convertAmountToReadable(treasuryBalance),
+            treasury_tvl: treasuryValue});
     }
 
     async processTrade(trade) {
