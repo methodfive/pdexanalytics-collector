@@ -3,10 +3,11 @@ import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
 import {closeRpcProvider, getAssetBalances, getTotalStaked} from "./providers/mainnet.js";
 import {
     FILTERED_ASSETS,
-    LMP_WALLET, PDEX_ASSET, TIME_BETWEEN_TIMERS,
-    UPDATE_ASSETS_FREQUENCY,
-    UPDATE_MARKETS_FREQUENCY, UPDATE_STAKED_FREQUENCY, UPDATE_STREAMS_FREQUENCY,
-    UPDATE_TVL_FREQUENCY, UPDATE_USERS_FREQUENCY,
+    LMP_WALLET,
+    PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, UPDATE_MAINNET_FREQUENCY,
+    UPDATE_ORDERBOOK_FREQUENCY,
+    UPDATE_STREAMS_FREQUENCY,
+    UPDATE_SUBSCAN_FREQUENCY,
     USDT_ASSETS
 } from "./constants.js";
 import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty, sleep} from "./util.js";
@@ -24,14 +25,11 @@ export class Collector {
     assets;
     markets;
     streams;
-    dailyStats;
 
-    assetTimer;
-    marketTimer;
-    userTimer;
+    orderbookTimer;
+    subscanTimer;
+    mainnetTimer;
     subscriptionTimer;
-    tvlTimer;
-    stakedTimer;
 
     streamDisconnectFlag;
     streamOkToReconnect;
@@ -45,6 +43,23 @@ export class Collector {
         this.inUpdateTVL = false;
         this.inStartSubscriptions = false;
         this.handleShutdown();
+    }
+
+    async updateSubscanData() {
+        await this.updateUsers();
+
+        await sleep(SUBSCAN_RATELIMIT_PAUSE); //ensure we don't hit subscan api limits
+
+        await this.updateStaked();
+    }
+
+    async updateOrderBookData() {
+        await this.updateAssets();
+        await this.updateMarkets();
+    }
+
+    async updateMainnetData() {
+        await this.updateTVL();
     }
 
     async updateUsers() {
@@ -80,11 +95,10 @@ export class Collector {
         console.log("updateMarkets");
         let markets = await getOrderBookMarkets();
 
-        if(!isEmpty(markets)) {
+        if (!isEmpty(markets)) {
             this.markets = markets;
-            for(let i = 0; i < this.markets.length; i++)
-            {
-                if(this.marketAssetsExists(this.markets[i])) {
+            for (let i = 0; i < this.markets.length; i++) {
+                if (this.marketAssetsExists(this.markets[i])) {
                     await saveMarket(this.markets[i]);
                 }
             }
@@ -111,12 +125,8 @@ export class Collector {
 
                 if(asset.tvl != null) {
                     await saveAsset(asset);
-                    //totalTVL += Number(asset.tvl);
                 }
             }
-
-            //console.log("TOTAL TVL:", totalTVL);
-            //await saveExchangeDaily({tvl:totalTVL});
         }
         finally
         {
@@ -143,7 +153,7 @@ export class Collector {
 
             let totalHolders = await getTotalHolders();
 
-            await sleep(1000); //ensure we don't hit subscan api limits
+            await sleep(SUBSCAN_RATELIMIT_PAUSE); //ensure we don't hit subscan api limits
 
             let totalStakers = await getTotalStakers();
 
@@ -259,11 +269,10 @@ export class Collector {
 
     handleShutdown() {
         const shutdown = () => {
-            clearInterval(this.assetTimer);
-            clearInterval(this.marketTimer);
-            clearInterval(this.userTimer);
+            clearInterval(this.orderbookTimer);
+            clearInterval(this.subscanTimer);
+            clearInterval(this.mainnetTimer);
             clearInterval(this.subscriptionTimer);
-            clearInterval(this.tvlTimer);
 
             for (let key of this.streams.keys()) {
                 try {
@@ -287,39 +296,27 @@ export class Collector {
 
     async startTimers() {
         console.log("startTimers");
-        this.assetTimer = setInterval(() => {
-            this.updateAssets()
-        }, UPDATE_ASSETS_FREQUENCY);
+        this.orderbookTimer = setInterval(() => {
+            this.updateOrderBookData()
+        }, UPDATE_ORDERBOOK_FREQUENCY);
 
         setTimeout(() => {
-            this.marketTimer = setInterval(() => {
-                this.updateMarkets()
-            }, UPDATE_MARKETS_FREQUENCY);
-        }, TIME_BETWEEN_TIMERS);
-
-        setTimeout(() => {
-            this.userTimer = setInterval(() => {
-                this.updateUsers()
-            }, UPDATE_USERS_FREQUENCY);
-        }, TIME_BETWEEN_TIMERS * 2);
+            this.subscanTimer = setInterval(() => {
+                this.updateSubscanData()
+            }, UPDATE_SUBSCAN_FREQUENCY);
+        }, 1000 * 60 * 5);
 
         setTimeout(() => {
             this.subscriptionTimer = setInterval(() => {
                 this.startSubscriptions()
             }, UPDATE_STREAMS_FREQUENCY);
-        }, TIME_BETWEEN_TIMERS * 3);
+        }, 1000 * 60 * 10);
 
         setTimeout(() => {
-            this.tvlTimer = setInterval(() => {
-                this.updateTVL();
-            }, UPDATE_TVL_FREQUENCY);
-        }, TIME_BETWEEN_TIMERS * 4);
-
-        setTimeout(() => {
-            this.stakedTimer = setInterval(() => {
-                this.updateStaked();
-            }, UPDATE_STAKED_FREQUENCY);
-        }, TIME_BETWEEN_TIMERS * 5);
+            this.mainnetTimer = setInterval(() => {
+                this.updateMainnetData();
+            }, UPDATE_MAINNET_FREQUENCY);
+        }, 1000 * 60 * 15);
 
         new CronJob('0 5 0 * * *',
             async function () {

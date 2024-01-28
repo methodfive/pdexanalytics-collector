@@ -12,13 +12,11 @@ export const USDT_ASSETS = ['3496813586714279103986568049643838918']; // assets 
 export const PDEX_ASSET = "PDEX";
 export const USDT_ASSET_PRICE = 1.00;
 
-export const UPDATE_ASSETS_FREQUENCY = 1000 * 60 * 30;
-export const UPDATE_STAKED_FREQUENCY = 1000 * 60 * 30;
-export const UPDATE_MARKETS_FREQUENCY = 1000 * 60 * 30;
-export const UPDATE_TVL_FREQUENCY = 1000 * 60 * 30;
-export const UPDATE_USERS_FREQUENCY = 1000 * 60 * 30;
+export const UPDATE_MAINNET_FREQUENCY = 1000 * 60 * 30;
+export const UPDATE_ORDERBOOK_FREQUENCY = 1000 * 60 * 30;
+export const UPDATE_SUBSCAN_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_STREAMS_FREQUENCY = 1000 * 60 * 1;
-export const TIME_BETWEEN_TIMERS = 1000 * 60 * 5;
+export const SUBSCAN_RATELIMIT_PAUSE = 2500;
 
 export const POLKADEX_SUBSCAN_EVENTS_URL = "https://polkadex.api.subscan.io/api/v2/scan/events";
 export const POLKADEX_SUBSCAN_HOLDERS_URL = "https://polkadex.api.subscan.io/api/scan/token/holders";
