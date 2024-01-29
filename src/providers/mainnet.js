@@ -2,32 +2,11 @@ import {ApiPromise, WsProvider} from "@polkadot/api";
 import {PDEX_ASSET, RPC_ENDPOINTS} from "../constants.js";
 import {isEmpty, isMapEmpty} from "../util.js";
 
-let _wsProvider = null;
-
-function getWsProvider()
-{
-    if(_wsProvider == null)
-    {
-        _wsProvider = new WsProvider(RPC_ENDPOINTS);
-    }
-    return _wsProvider;
-}
-
-export function closeRpcProvider() {
-    if (_wsProvider != null) {
-        try {
-            console.log("disconnecting from rpc");
-            _wsProvider.disconnect();
-        } catch (e) {
-        }
-    }
-}
-
 export async function getAssetBalances(assets, wallet) {
     if(isMapEmpty(assets) || isEmpty(wallet))
         return;
 
-    const wsProvider = getWsProvider();
+    const wsProvider = new WsProvider(RPC_ENDPOINTS);
     const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
 
     let requestedAssets = [];
@@ -45,6 +24,9 @@ export async function getAssetBalances(assets, wallet) {
         }
     }
     assets.get(PDEX_ASSET).balance = await getPDEXBalance(wallet);
+
+    await wsProvider.disconnect();
+
     return assets;
 }
 
@@ -52,27 +34,36 @@ export async function getPDEXBalance(wallet) {
     if(isEmpty(wallet))
         return;
 
-    const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
+    const wsProvider = new WsProvider(RPC_ENDPOINTS);
+    const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
 
     let results = await api.derive.balances.all(wallet);
+
+    await wsProvider.disconnect();
+
     return Number(results.availableBalance.toPrimitive());
 }
 
 async function getCurrentEra() {
-    const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
+    const wsProvider = new WsProvider(RPC_ENDPOINTS);
+    const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
 
     const chainActiveEra = await api.query.staking.activeEra();
+
+    await wsProvider.disconnect();
+
     return JSON.parse(JSON.stringify(chainActiveEra)).index;
 }
 
 export async function getTotalStaked() {
-    const wsProvider = getWsProvider();
-    const api = await ApiPromise.create({provider: wsProvider,noInitWarn: true});
+    const wsProvider = new WsProvider(RPC_ENDPOINTS);
+    const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
 
     let activeEra = await getCurrentEra();
 
     let results = await api.query.staking.erasTotalStake([activeEra]);
+
+    await wsProvider.disconnect();
+
     return results.toPrimitive();
 }

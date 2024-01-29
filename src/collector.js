@@ -1,6 +1,6 @@
 import "@polkadot/api-augment"
 import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
-import {closeRpcProvider, getAssetBalances, getPDEXBalance, getTotalStaked} from "./providers/mainnet.js";
+import {getAssetBalances, getPDEXBalance, getTotalStaked} from "./providers/mainnet.js";
 import {
     FILTERED_ASSETS,
     LMP_WALLET,
@@ -265,7 +265,8 @@ export class Collector {
             await closeStreams(this.streams);
             this.streams.clear();
 
-            await new Promise(r => setTimeout(r, 1000 * 60));
+            await sleep( 1000 * 60);
+
             this.streamDisconnectFlag = false;
             console.log("Done cancelling subscriptions");
         }
@@ -325,7 +326,6 @@ export class Collector {
                 } catch(e) {}
             }
             closeWssClient();
-            closeRpcProvider();
             closeConnectionPool();
         };
 
