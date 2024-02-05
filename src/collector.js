@@ -1,6 +1,6 @@
 import "@polkadot/api-augment"
 import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
-import {getAssetBalances, getPDEXBalance, getTotalStaked} from "./providers/mainnet.js";
+import {getAssetBalances, getPDEXBalance, getTotalIssuance, getTotalStaked} from "./providers/mainnet.js";
 import {
     FILTERED_ASSETS,
     LMP_WALLET,
@@ -99,6 +99,7 @@ export class Collector {
 
         try {
             await this.updateTVL();
+            await this.updateIssuance();
         }
         finally
         {
@@ -147,6 +148,15 @@ export class Collector {
                 }
             }
         }
+    }
+
+    async updateIssuance() {
+        console.log("updateIssuance");
+
+        let totalIssuance = await getTotalIssuance();
+
+        await saveExchangeDaily({
+            total_issuance: convertAmountToReadable(totalIssuance)});
     }
 
     async updateTVL() {

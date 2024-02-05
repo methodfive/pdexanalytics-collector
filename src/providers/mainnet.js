@@ -67,3 +67,14 @@ export async function getTotalStaked() {
 
     return results.toPrimitive();
 }
+
+export async function getTotalIssuance() {
+    const wsProvider = new WsProvider(RPC_ENDPOINTS);
+    const api = await ApiPromise.create({provider: wsProvider, noInitWarn: true});
+
+    let results = await api.query.balances.totalIssuance();
+
+    await wsProvider.disconnect();
+
+    return results.toPrimitive();
+}

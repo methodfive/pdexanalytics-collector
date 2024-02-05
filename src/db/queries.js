@@ -54,7 +54,7 @@ export async function saveExchangeDaily(stats)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, treasury_balance, treasury_tvl) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
             tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
@@ -62,10 +62,11 @@ export async function saveExchangeDaily(stats)
             staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl),
             total_holders = IF(new_data.total_holders is null, exchange_daily.total_holders, new_data.total_holders),
             total_stakers = IF(new_data.total_stakers is null, exchange_daily.total_stakers, new_data.total_stakers),
+            total_issuance = IF(new_data.total_issuance is null, exchange_daily.total_issuance, new_data.total_issuance),
             treasury_balance = IF(new_data.treasury_balance is null, exchange_daily.treasury_balance, new_data.treasury_balance),
             treasury_tvl = IF(new_data.treasury_tvl is null, exchange_daily.treasury_tvl, new_data.treasury_tvl)
             `,
-            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.treasury_balance, stats.treasury_tvl],
+            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.total_issuance, stats.treasury_balance, stats.treasury_tvl],
             ([rows,fields]) => {},
             DB_RETRIES
         );

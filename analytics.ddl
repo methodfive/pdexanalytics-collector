@@ -179,3 +179,9 @@ alter table exchange_24h add treasury_balance int null;
 alter table exchange_24h add treasury_tvl decimal(12,2) null;
 alter table exchange_24h add previous_treasury_balance int null;
 alter table exchange_24h add previous_treasury_tvl decimal(12,2) null;
+
+
+alter table exchange_daily add total_issuance int null;
+alter table exchange_hourly add total_issuance int null;
+alter table exchange_24h add total_issuance int null;
+alter table exchange_24h add previous_total_issuance int null;
