@@ -1,8 +1,8 @@
 export const RPC_ENDPOINTS = ["wss://polkadex.api.onfinality.io/public-ws","wss://polkadex.public.curie.radiumblock.co/ws"];
 
-export const POLKADEX_GRAPHQL = "https://yx375ldozvcvthjk2nczch3fhq.appsync-api.eu-central-1.amazonaws.com/graphql";
-export const POLKADEX_WSS_GRAPHQL = "wss://yx375ldozvcvthjk2nczch3fhq.appsync-realtime-api.eu-central-1.amazonaws.com/graphql?header=eyJBdXRob3JpemF0aW9uIjoiUkVBRF9PTkxZIiwiaG9zdCI6Inl4Mzc1bGRvenZjdnRoamsybmN6Y2gzZmhxLmFwcHN5bmMtYXBpLmV1LWNlbnRyYWwtMS5hbWF6b25hd3MuY29tIn0=&payload=e30=";
-export const POLKADEX_WSS_HOST = "yx375ldozvcvthjk2nczch3fhq.appsync-api.eu-central-1.amazonaws.com";
+export const POLKADEX_GRAPHQL = "https://api.polkadex.trade/graphql";
+export const POLKADEX_WSS_GRAPHQL = "wss://api.polkadex.trade/graphql/realtime?header=eyJBdXRob3JpemF0aW9uIjoiUkVBRF9PTkxZIiwiaG9zdCI6Inl4Mzc1bGRvenZjdnRoamsybmN6Y2gzZmhxLmFwcHN5bmMtYXBpLmV1LWNlbnRyYWwtMS5hbWF6b25hd3MuY29tIn0=&payload=e30=";
+export const POLKADEX_WSS_HOST = "api.polkadex.trade";
 export const POLKADEX_AUTH = "READ_ONLY";
 
 export const LMP_WALLET = "esoEt6uZ3GuFV8EzKB2EAREe3KE9WuRVfmhK1RRtwffY78ArH";

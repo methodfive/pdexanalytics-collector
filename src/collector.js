@@ -275,7 +275,7 @@ export class Collector {
             await closeStreams(this.streams);
             this.streams.clear();
 
-            await sleep( 1000 * 60);
+            await sleep( 2500 * 60);
 
             this.streamDisconnectFlag = false;
             console.log("Done cancelling subscriptions");
