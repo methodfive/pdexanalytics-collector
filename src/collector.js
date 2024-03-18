@@ -381,7 +381,7 @@ export class Collector {
             'Etc/UTC'
         );
 
-        new CronJob('0 10 * * * *',
+        new CronJob('0 8 * * * *',
             async function () {
                 await hourlyJob();
             },
@@ -390,7 +390,7 @@ export class Collector {
             'Etc/UTC'
         );
 
-        new CronJob('0 6,12,18,24,30,36,42,48,54 * * * *',
+        new CronJob('0 0,5,10,15,20,25,30,35,40,45,50,55 * * * *',
             async function () {
                 await updateCaches();
             },
