@@ -390,7 +390,7 @@ export class Collector {
             'Etc/UTC'
         );
 
-        new CronJob('0 15,45 * * * *',
+        new CronJob('0 6,12,18,24,30,36,42,48,54 * * * *',
             async function () {
                 await updateCaches();
             },
