@@ -102,7 +102,7 @@ export async function saveTrade(trade)
             t_cid = new_data.t_cid,
             m_side = new_data.m_side,
             t_side = new_data.t_side,
-            trade_id = new_data.trade_id,
+            trade_oid = new_data.trade_oid,
             timestamp = new_data.timestamp`,
             [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, getDateFromUtc(trade.t),
                 trade.m_id, trade.t_id, trade.m_cid, trade.t_cid, trade.m_side, trade.t_side, trade.trade_id],
