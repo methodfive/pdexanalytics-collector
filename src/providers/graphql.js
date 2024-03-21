@@ -82,3 +82,45 @@ export async function getOrderBookMarkets() {
     }
     return marketIds;
 }
+
+export async function getOrder(orderID) {
+    console.log("Querying order ID:", orderID);
+    let response = await axios.post(POLKADEX_GRAPHQL, {
+            query: `query findOrderById($order_id: String!) {
+                  findOrderById(order_id: $order_id) {
+                    u
+                    cid
+                    id
+                    t
+                    m
+                    s
+                    ot
+                    st
+                    p
+                    q
+                    qoq
+                    afp
+                    fq
+                    fee
+                    stid
+                    isReverted
+                  }
+                }`,
+        variables: {
+            'order_id': orderID
+        },
+        },{
+            headers: {
+                'Authorization': POLKADEX_AUTH,
+                'Content-Type': 'application/json'
+            }}
+    ).catch(function(e) {
+        console.log("Error querying order", e.message);
+    });
+
+    if(response == null || response.data == null)
+        return null;
+
+   console.log(response.data);
+   return response.data;
+}

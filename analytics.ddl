@@ -185,3 +185,23 @@ alter table exchange_daily add total_issuance int null;
 alter table exchange_hourly add total_issuance int null;
 alter table exchange_24h add total_issuance int null;
 alter table exchange_24h add previous_total_issuance int null;
+
+alter table trades modify column volume decimal(18,6);
+alter table exchange_daily modify column volume decimal(18,6);
+alter table markets_daily modify column volume decimal(18,6);
+alter table assets_daily modify column volume decimal(18,6);
+alter table exchange_hourly modify column volume decimal(18,6);
+alter table exchange_24h modify column volume decimal(18,6);
+alter table assets_24h modify column volume decimal(18,6);
+alter table markets_24h modify column volume decimal(18,6);
+alter table exchange_24h modify column previous_volume decimal(18,6);
+alter table assets_24h modify column previous_volume decimal(18,6);
+alter table markets_24h modify column previous_volume decimal(18,6);
+
+alter table trades add column m_id varchar(100);
+alter table trades add column t_id varchar(100);
+alter table trades add column m_cid varchar(100);
+alter table trades add column t_cid varchar(100);
+alter table trades add column m_side varchar(6);
+alter table trades add column t_side varchar(6);
+alter table trades add column trade_oid varchar(100);

@@ -89,15 +89,23 @@ export async function saveTrade(trade)
         let marketPairs = getAssetsFromMarket(trade.m);
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO trades (trade_id, base_asset_id, quote_asset_id, price, quantity, volume, timestamp) values (?, ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO trades (trade_id, base_asset_id, quote_asset_id, price, quantity, volume, timestamp, m_id, t_id, m_cid, t_cid, m_side, t_side, trade_oid) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             base_asset_id = new_data.base_asset_id,
             quote_asset_id = new_data.quote_asset_id,
             price = new_data.price,
             quantity = new_data.quantity,
             volume = new_data.volume,
+            m_id = new_data.m_id,
+            t_id = new_data.t_id,
+            m_cid = new_data.m_cid,
+            t_cid = new_data.t_cid,
+            m_side = new_data.m_side,
+            t_side = new_data.t_side,
+            trade_id = new_data.trade_id,
             timestamp = new_data.timestamp`,
-            [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, getDateFromUtc(trade.t)],
+            [trade.stid, marketPairs[0], marketPairs[1], trade.p, trade.q, trade.vq, getDateFromUtc(trade.t),
+                trade.m_id, trade.t_id, trade.m_cid, trade.t_cid, trade.m_side, trade.t_side, trade.trade_id],
             ([rows,fields]) => {},
             DB_RETRIES
         );
