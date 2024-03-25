@@ -12,7 +12,7 @@ export async function saveExchangeDaily(stats)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
             tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
@@ -22,9 +22,10 @@ export async function saveExchangeDaily(stats)
             total_stakers = IF(new_data.total_stakers is null, exchange_daily.total_stakers, new_data.total_stakers),
             total_issuance = IF(new_data.total_issuance is null, exchange_daily.total_issuance, new_data.total_issuance),
             treasury_balance = IF(new_data.treasury_balance is null, exchange_daily.treasury_balance, new_data.treasury_balance),
-            treasury_tvl = IF(new_data.treasury_tvl is null, exchange_daily.treasury_tvl, new_data.treasury_tvl)
+            treasury_tvl = IF(new_data.treasury_tvl is null, exchange_daily.treasury_tvl, new_data.treasury_tvl),
+            new_users = IF(new_data.new_users is null, exchange_daily.new_users, new_data.new_users)
             `,
-            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.total_issuance, stats.treasury_balance, stats.treasury_tvl],
+            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.total_issuance, stats.treasury_balance, stats.treasury_tvl, stats.new_users],
             ([rows,fields]) => {},
             DB_RETRIES
         );
@@ -58,6 +59,7 @@ SET
     exchange_24h.tvl = COALESCE(exchange_daily.tvl, 0),
     exchange_24h.volume = COALESCE(ag1.volume, 0),
     exchange_24h.users = COALESCE(exchange_daily.users, 0),
+    exchange_24h.new_users = COALESCE(exchange_daily.new_users, 0),
     exchange_24h.trades = COALESCE(ag1.trades, 0),
     exchange_24h.total_staked = COALESCE(exchange_daily.total_staked, 0),
     exchange_24h.staked_tvl = COALESCE(exchange_daily.staked_tvl, 0),
@@ -69,6 +71,7 @@ SET
     exchange_24h.previous_tvl = COALESCE(previous_data.tvl, 0),
     previous_volume = COALESCE(ag2.prev_volume, 0),
     exchange_24h.previous_users = COALESCE(previous_data.users, 0),
+    exchange_24h.previous_new_users = COALESCE(previous_data.new_users, 0),
     exchange_24h.previous_trades = COALESCE(ag2.prev_trades, 0),
     exchange_24h.previous_total_staked = COALESCE(previous_data.total_staked, 0),
     exchange_24h.previous_staked_tvl = COALESCE(previous_data.staked_tvl, 0),
@@ -115,11 +118,12 @@ export async function newExchangeDailyDay()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl)
-select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
+            `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
+select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
 ON DUPLICATE KEY UPDATE 
             tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
             users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
+            new_users = IF(exchange_daily.new_users is null, old_exchange_daily.new_users, exchange_daily.new_users),
             total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
             staked_tvl = IF(exchange_daily.staked_tvl is null, old_exchange_daily.staked_tvl, exchange_daily.staked_tvl),
             total_holders = IF(exchange_daily.total_holders is null, old_exchange_daily.total_holders, exchange_daily.total_holders),
@@ -169,8 +173,8 @@ export async function updateExchangeHourly(currentTime)
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl)
-        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl from exchange_daily order by stat_date desc limit 1`,
+            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
+        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily order by stat_date desc limit 1`,
             [currentTime],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -179,4 +183,29 @@ export async function updateExchangeHourly(currentTime)
     catch(e) {
         console.log("Error updating exchange hourly",e);
     }
+}
+
+export async function getPreviousTotalUsers()
+{
+    let result = null;
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `SELECT users from exchange_daily where stat_date != ? order by stat_date desc limit 1`,
+            [new Date()],
+            ([rows,fields]) => {
+                for(let i = 0; i < rows.length; i++)
+                {
+                    console.log(rows[i]);
+                    result = rows[i].users;
+                }
+            },
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.log("Error getting previous total users",e);
+    }
+    return result;
 }

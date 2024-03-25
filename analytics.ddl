@@ -205,3 +205,8 @@ alter table trades add column t_cid varchar(100);
 alter table trades add column m_side varchar(6);
 alter table trades add column t_side varchar(6);
 alter table trades add column trade_oid varchar(100);
+
+alter table exchange_daily add new_users int null;
+alter table exchange_hourly add new_users int null;
+alter table exchange_24h add new_users int null;
+alter table exchange_24h add previous_new_users int null;
