@@ -17,9 +17,11 @@ import {
 } from "./db/database.js";
 import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_sub.js";
 import {CronJob} from "cron";
-import {saveAsset, saveAssets, saveExchangeDaily, saveMarket, saveTrade} from "./db/queries.js";
-import {hourlyJob, nightlyJob} from "./db/jobs.js";
-import {updateCaches} from "./db/caches.js";
+import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
+import {saveExchangeDaily} from "./db/exchange.js";
+import {saveAsset, saveAssets} from "./db/assets.js";
+import {saveMarket} from "./db/markets.js";
+import {saveTrade} from "./db/trades.js";
 
 export class Collector {
     assets;
