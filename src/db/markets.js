@@ -59,7 +59,7 @@ export async function updateMarketsDaily(yesterday)
         );
     }
     catch(e) {
-        console.log("Error performing markets_daily job",e);
+        console.error("Error performing markets_daily job",e);
     }
 }
 
@@ -103,6 +103,6 @@ ON DUPLICATE KEY UPDATE
         );
     }
     catch(e) {
-        console.log("Error performing markets 24h",e);
+        console.error("Error performing markets 24h",e);
     }
 }

@@ -37,7 +37,7 @@ export async function saveTrade(trade)
         );
     }
     catch(e) {
-        console.log("Error saving trade",e);
+        console.error("Error saving trade",e);
     }
 }
 
@@ -55,7 +55,7 @@ export async function cleanTrades()
         );
     }
     catch(e) {
-        console.log("Error cleaning trade",e);
+        console.error("Error cleaning trade",e);
     }
 }
 

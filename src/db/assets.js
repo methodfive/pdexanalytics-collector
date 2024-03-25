@@ -70,7 +70,7 @@ ON DUPLICATE KEY UPDATE
         );
     }
     catch(e) {
-        console.log("Error performing assets 24h",e);
+        console.error("Error performing assets 24h",e);
     }
 }
 
@@ -120,7 +120,7 @@ group by stat_date, asset_id`,
         );
     }
     catch(e) {
-        console.log("Error performing assets_daily job",e);
+        console.error("Error performing assets_daily job",e);
     }
 }
 
@@ -160,7 +160,7 @@ export async function saveAsset(asset)
         );
     }
     catch(e) {
-        console.log("Error saving asset",e);
+        console.error("Error saving asset",e);
     }
 }
 
@@ -177,7 +177,7 @@ export async function cleanAssets()
         );
     }
     catch(e) {
-        console.log("Error cleaning assets",e);
+        console.error("Error cleaning assets",e);
     }
 }
 

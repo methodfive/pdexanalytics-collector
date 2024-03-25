@@ -31,7 +31,7 @@ export async function saveExchangeDaily(stats)
         );
     }
     catch(e) {
-        console.log("Error saving users",e);
+        console.error("Error saving users",e);
     }
 }
 
@@ -91,7 +91,7 @@ SET
         );
     }
     catch(e) {
-        console.log("Error performing exhange 24h",e);
+        console.error("Error performing exhange 24h",e);
     }
 }
 
@@ -112,7 +112,7 @@ export async function updateExchangeDaily()
         );
     }
     catch(e) {
-        console.log("Error updating exchange daily",e);
+        console.error("Error updating exchange daily",e);
     }
 }
 
@@ -142,7 +142,7 @@ ON DUPLICATE KEY UPDATE
         );
     }
     catch(e) {
-        console.log("Error creating new exchange day", e);
+        console.error("Error creating new exchange day", e);
     }
 }
 
@@ -159,7 +159,7 @@ export async function cleanExchange()
         );
     }
     catch(e) {
-        console.log("Error cleaning trade",e);
+        console.error("Error cleaning trade",e);
     }
 }
 
@@ -185,7 +185,7 @@ export async function updateExchangeHourly(currentTime)
         );
     }
     catch(e) {
-        console.log("Error updating exchange hourly",e);
+        console.error("Error updating exchange hourly",e);
     }
 }
 
@@ -209,7 +209,7 @@ export async function getTotalUsers(currentTime)
         );
     }
     catch(e) {
-        console.log("Error getting previous total users",e);
+        console.error("Error getting previous total users",e);
     }
     return result;
 }

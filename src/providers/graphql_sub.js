@@ -36,10 +36,10 @@ export async function streamTrades(market, callback, onDisconnect, onReconnect) 
         }
         else
         {
-            console.info("Unable to parse trade:", eventData);
+            console.error("Unable to parse trade:", eventData);
         }
     }, (err) => {
-        console.info(err);
+        console.error(err);
     },() => {
 
     });
@@ -60,8 +60,8 @@ export const getWsClient = function(wsurl, onDisconnect, onReconnect) {
 
     wsClient.use([createAppSyncGraphQLOperationAdapter(getAppSyncAuthorizationInfo)])
     wsClient.onConnected(data => {console.log('WSS connected', data)});
-    wsClient.onError(data  => console.log('WSS error', data.message));
-    wsClient.onDisconnected(data => { console.log('WSS disconnected'); onDisconnect();});
+    wsClient.onError(data  => console.error('WSS error', data.message));
+    wsClient.onDisconnected(data => { console.error('WSS disconnected'); onDisconnect();});
     wsClient.onReconnected(data => { console.log('WSS reconnected'); onReconnect();});
 
     return wsClient;
