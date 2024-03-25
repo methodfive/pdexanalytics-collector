@@ -42,8 +42,8 @@ export async function nightlyJob()
     await updateExchangeDaily()
     await newExchangeDailyDay();
 
-    await updateAssetsDaily();
-    await updateMarketsDaily();
+    await updateAssetsDaily(true);
+    await updateMarketsDaily(true);
 
     await cleanTrades();
     await cleanExchange();

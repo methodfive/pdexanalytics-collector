@@ -74,27 +74,45 @@ ON DUPLICATE KEY UPDATE
     }
 }
 
-export async function updateAssetsDaily()
+export async function updateAssetsDaily(yesterday)
 {
     try {
         let connectionPool = getConnection();
 
+        let currentDate = " CURDATE()";
+        if(yesterday != null && yesterday)
+        {
+            currentDate = " DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+        }
+
         await queryAsyncWithRetries(connectionPool,
-            `delete from assets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
+            `delete from assets_daily where date(stat_date) = ` + currentDate,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into assets_daily (stat_date, asset_id, balance, price, tvl, volume, trades) select stat_date, asset_id, avg(balance) as balance, avg(price) as price, sum(tvl) as tvl, sum(volume) as volume, sum(trades) as trades from (
-    select date(timestamp) as stat_date, base_asset_id as asset_id, (select balance from assets where asset_id = trades.base_asset_id) as balance, (select price from assets where asset_id = trades.base_asset_id) as price, (select tvl from assets where asset_id = trades.base_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
-where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+            `insert into assets_daily (stat_date, asset_id, balance, price, tvl, volume, trades) 
+select stat_date, asset_id, avg(balance) as balance, avg(price) as price, sum(tvl) as tvl, sum(volume) as volume, sum(trades) as trades from (
+ 
+ select date(timestamp) as stat_date, base_asset_id as asset_id, (select balance from assets where asset_id = trades.base_asset_id) as balance, (select price from assets where asset_id = trades.base_asset_id) as price, (select tvl from assets where asset_id = trades.base_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
+where date(timestamp) = ` + currentDate + `
 group by base_asset_id, date(stat_date)
+
 union
+
 select date(timestamp) as stat_date, quote_asset_id as asset_id, (select balance from assets where asset_id = trades.quote_asset_id) as balance, (select price from assets where asset_id = trades.quote_asset_id) as price, (select tvl from assets where asset_id = trades.quote_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
-where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-group by quote_asset_id, date(stat_date)) stat_data
+where date(timestamp) = ` + currentDate + `
+group by quote_asset_id, date(stat_date)
+
+union
+
+select ` + currentDate + ` as stat_date, asset_id, balance, price, 
+tvl, 0, 0 from assets 
+where not exists (select * from trades where base_asset_id=assets.asset_id or quote_asset_id = assets.asset_id)
+                
+) stat_data
 group by stat_date, asset_id`,
             [],
             ([rows,fields]) => {},

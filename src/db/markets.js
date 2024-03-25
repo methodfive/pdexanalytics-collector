@@ -28,13 +28,18 @@ export async function saveMarket(market)
     }
 }
 
-export async function updateMarketsDaily()
+export async function updateMarketsDaily(yesterday)
 {
     try {
+        let currentDate = " CURDATE()";
+        if(yesterday != null && yesterday)
+        {
+            currentDate = " DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+        }
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `delete from markets_daily where date(stat_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
+            `delete from markets_daily where date(stat_date) = ` + currentDate,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -43,8 +48,11 @@ export async function updateMarketsDaily()
         await queryAsyncWithRetries(connectionPool,
             `insert into markets_daily (stat_date, base_asset_id, quote_asset_id, volume, trades) 
                 select date(timestamp), base_asset_id, quote_asset_id, sum(volume), count(*) from trades
-                where date(timestamp) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-                group by base_asset_id, quote_asset_id, date(timestamp)`,
+                where date(timestamp) = ` + currentDate + `
+                group by base_asset_id, quote_asset_id, date(timestamp)
+                union
+                select ` + currentDate + ` as stat_date, base_asset_id, quote_asset_id, 0, 0 from markets where not exists (select * from trades where base_asset_id=markets.base_asset_id and quote_asset_id = markets.quote_asset_id)
+            `,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
