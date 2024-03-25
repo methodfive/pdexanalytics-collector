@@ -48,6 +48,10 @@ CROSS JOIN (
     SELECT MAX(exchange_hourly.stat_time) AS stat_time FROM exchange_hourly 
     WHERE exchange_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 1 DAY)) previous_stat_time
 LEFT OUTER JOIN exchange_hourly AS previous_data ON previous_data.stat_time = previous_stat_time.stat_time
+CROSS JOIN ( 
+    SELECT MAX(exchange_hourly.stat_time) AS stat_time FROM exchange_hourly 
+    WHERE exchange_hourly.stat_time <= DATE_SUB(NOW(), INTERVAL 2 DAY)) previous_previous_stat_time
+LEFT OUTER JOIN exchange_hourly AS previous_previous_data ON previous_previous_data.stat_time = previous_previous_stat_time.stat_time
 CROSS JOIN (
     SELECT COUNT(*) AS trades, SUM(volume) AS volume 
     FROM trades
@@ -59,7 +63,7 @@ SET
     exchange_24h.tvl = COALESCE(exchange_daily.tvl, 0),
     exchange_24h.volume = COALESCE(ag1.volume, 0),
     exchange_24h.users = COALESCE(exchange_daily.users, 0),
-    exchange_24h.new_users = COALESCE(exchange_daily.new_users, 0),
+    exchange_24h.new_users = COALESCE(exchange_daily.users, 0) - COALESCE(previous_data.users, 0),
     exchange_24h.trades = COALESCE(ag1.trades, 0),
     exchange_24h.total_staked = COALESCE(exchange_daily.total_staked, 0),
     exchange_24h.staked_tvl = COALESCE(exchange_daily.staked_tvl, 0),
@@ -71,7 +75,7 @@ SET
     exchange_24h.previous_tvl = COALESCE(previous_data.tvl, 0),
     previous_volume = COALESCE(ag2.prev_volume, 0),
     exchange_24h.previous_users = COALESCE(previous_data.users, 0),
-    exchange_24h.previous_new_users = COALESCE(previous_data.new_users, 0),
+    exchange_24h.previous_new_users = COALESCE(previous_data.users, 0) - COALESCE(previous_previous_data.users, 0),
     exchange_24h.previous_trades = COALESCE(ag2.prev_trades, 0),
     exchange_24h.previous_total_staked = COALESCE(previous_data.total_staked, 0),
     exchange_24h.previous_staked_tvl = COALESCE(previous_data.staked_tvl, 0),
@@ -185,7 +189,7 @@ export async function updateExchangeHourly(currentTime)
     }
 }
 
-export async function getPreviousTotalUsers()
+export async function getTotalUsers(currentTime)
 {
     let result = null;
     try {
@@ -193,7 +197,7 @@ export async function getPreviousTotalUsers()
 
         await queryAsyncWithRetries(connectionPool,
             `SELECT users from exchange_daily where stat_date != ? order by stat_date desc limit 1`,
-            [new Date()],
+            [currentTime],
             ([rows,fields]) => {
                 for(let i = 0; i < rows.length; i++)
                 {
