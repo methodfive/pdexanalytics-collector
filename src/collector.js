@@ -119,7 +119,6 @@ export class Collector {
             if(previousUsers != null)
             {
                 usersChange = totalUsers - previousUsers;
-                usersChange = null;
             }
 
             await saveExchangeDaily({
