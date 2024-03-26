@@ -12,7 +12,7 @@ export async function saveExchangeDaily(stats)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users) values (?, ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users) values (CURDATE(), ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
             tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
@@ -25,7 +25,7 @@ export async function saveExchangeDaily(stats)
             treasury_tvl = IF(new_data.treasury_tvl is null, exchange_daily.treasury_tvl, new_data.treasury_tvl),
             new_users = IF(new_data.new_users is null, exchange_daily.new_users, new_data.new_users)
             `,
-            [new Date(), stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.total_issuance, stats.treasury_balance, stats.treasury_tvl, stats.new_users],
+            [stats.users, stats.total_staked, stats.staked_tvl, stats.total_holders, stats.total_stakers, stats.total_issuance, stats.treasury_balance, stats.treasury_tvl, stats.new_users],
             ([rows,fields]) => {},
             DB_RETRIES
         );
@@ -189,15 +189,15 @@ export async function updateExchangeHourly(currentTime)
     }
 }
 
-export async function getTotalUsers(currentTime)
+export async function getPreviousTotalUsers()
 {
     let result = null;
     try {
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `SELECT users from exchange_daily where stat_date != ? order by stat_date desc limit 1`,
-            [currentTime],
+            `SELECT stat_date, users from exchange_daily where stat_date <= DATE_SUB(CURDATE(), INTERVAL 1 DAY) order by stat_date desc limit 1`,
+            [],
             ([rows,fields]) => {
                 for(let i = 0; i < rows.length; i++)
                 {

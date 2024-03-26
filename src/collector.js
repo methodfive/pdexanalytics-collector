@@ -18,7 +18,7 @@ import {
 import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_sub.js";
 import {CronJob} from "cron";
 import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
-import {getTotalUsers, saveExchangeDaily} from "./db/exchange.js";
+import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
 import {saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
@@ -114,7 +114,7 @@ export class Collector {
         let totalUsers = await getRegisteredUsers();
 
         if(totalUsers != null) {
-            let previousUsers = await getTotalUsers(new Date());
+            let previousUsers = await getPreviousTotalUsers();
             let usersChange = null;
             if(previousUsers != null)
             {
