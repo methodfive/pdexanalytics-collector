@@ -272,11 +272,6 @@ export class Collector {
         this.inStartSubscriptions = true
 
         if (this.streamOkToReconnect) {
-            /*
-            SubscriptionClient supports auto-reconnect if internet is lost, but we need to also support
-            if polkadex team redeploys the graphql services which would cause the subscription to be cancelled. to handle this we
-            will always recreate subscriptions on WSS reconnect
-            */
             console.log("Cancelling subscriptions after reconnect");
             this.streamOkToReconnect = false;
             this.streamDisconnectFlag = false;
@@ -305,8 +300,11 @@ export class Collector {
                     let consumer = await streamTrades(m, (trade) => {
                         this.processTrade(trade);
                     }, () => {
-                        this.streamDisconnectFlag = true;
+                        //this.streamDisconnectFlag = true;
                     }, () => {
+                        //this.streamOkToReconnect = true;
+                    }, () => {
+                        this.streamDisconnectFlag = true;
                         this.streamOkToReconnect = true;
                     });
                     this.streams.set(m, consumer);

@@ -12,7 +12,7 @@ import {WebSocketLink} from "apollo-link-ws";
 
 let wsClient = null;
 
-export async function streamTrades(market, callback, onDisconnect, onReconnect) {
+export async function streamTrades(market, callback, onDisconnect, onReconnect, onHandlerLoss) {
     if(isEmpty(market))
         return;
 
@@ -26,7 +26,7 @@ export async function streamTrades(market, callback, onDisconnect, onReconnect) 
               }
              }`,
         {"name": market+"-recent-trades"},
-        onDisconnect, onReconnect
+        onDisconnect, onReconnect, onHandlerLoss
     );
 
     let consumer = subscriptionClient.subscribe(eventData => {
@@ -46,9 +46,12 @@ export async function streamTrades(market, callback, onDisconnect, onReconnect) 
     return consumer;
 }
 
-export const getWsClient = function(wsurl, onDisconnect, onReconnect) {
+export const getWsClient = function(wsurl, onDisconnect, onReconnect, onHandlerLoss) {
     if(wsClient != null)
         return wsClient;
+
+    if(wsurl === null)
+        return;
 
     const getAppSyncAuthorizationInfo = async () => ({host: POLKADEX_WSS_HOST, Authorization: POLKADEX_AUTH});
 
@@ -56,7 +59,7 @@ export const getWsClient = function(wsurl, onDisconnect, onReconnect) {
         reconnect: true,
         timeout: 5 * 60 * 1000,
         lazy: false
-    }, createAppSyncAuthorizedWebSocket(getAppSyncAuthorizationInfo), ['graphql-ws']);
+    }, createAppSyncAuthorizedWebSocket(getAppSyncAuthorizationInfo, onHandlerLoss), ['graphql-ws']);
 
     wsClient.use([createAppSyncGraphQLOperationAdapter(getAppSyncAuthorizationInfo)])
     wsClient.onConnected(data => {console.log('WSS connected', data)});
@@ -67,14 +70,14 @@ export const getWsClient = function(wsurl, onDisconnect, onReconnect) {
     return wsClient;
 };
 
-export const createSubscriptionObservable = (wsurl, query, variables, onDisconnect, onReconnect) => {
+export const createSubscriptionObservable = (wsurl, query, variables, onDisconnect, onReconnect, onHandlerLoss) => {
     const extensions = {
         "authorization": {
             "Authorization": POLKADEX_AUTH,
             "host": POLKADEX_WSS_HOST
         }
     }
-    const link = new WebSocketLink(getWsClient(wsurl, onDisconnect, onReconnect));
+    const link = new WebSocketLink(getWsClient(wsurl, onDisconnect, onReconnect, onHandlerLoss));
     return execute(link, {query: query, variables: variables, extensions: extensions});
 };
 

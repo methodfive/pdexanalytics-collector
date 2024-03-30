@@ -1,7 +1,7 @@
 import {createRequire} from "module";
 const require = createRequire(import.meta.url);
 
-export const createAppSyncAuthorizedWebSocket = (getAppSyncAuthorizationInfo) => {
+export const createAppSyncAuthorizedWebSocket = (getAppSyncAuthorizationInfo, onHandlerLoss) => {
     const WebSocket = require('ws');
     return class extends WebSocket {
         set onmessage(handler) {
@@ -16,8 +16,10 @@ export const createAppSyncAuthorizedWebSocket = (getAppSyncAuthorizationInfo) =>
 
                 if(handler != null)
                     return handler(event);
-                else
+                else {
+                    onHandlerLoss();
                     return;
+                }
             };
         }
 
