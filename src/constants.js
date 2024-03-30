@@ -16,7 +16,7 @@ export const USDT_ASSET_PRICE = 1.00;
 export const UPDATE_MAINNET_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_ORDERBOOK_FREQUENCY = 1000 * 60 * 30;
 export const UPDATE_SUBSCAN_FREQUENCY = 1000 * 60 * 30;
-export const UPDATE_STREAMS_FREQUENCY = 1000 * 60 * 1;
+export const UPDATE_STREAMS_FREQUENCY = 1000 * 5;
 export const SUBSCAN_RATELIMIT_PAUSE = 2500;
 
 export const POLKADEX_SUBSCAN_EVENTS_URL = "https://polkadex.api.subscan.io/api/v2/scan/events";

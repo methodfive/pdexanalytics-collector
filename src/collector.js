@@ -31,7 +31,6 @@ export class Collector {
     orderbookTimer;
     subscanTimer;
     mainnetTimer;
-    subscriptionTimer;
 
     streamDisconnectFlag;
     streamOkToReconnect;
@@ -264,8 +263,6 @@ export class Collector {
     }
 
     async startSubscriptions() {
-        console.log("startSubscriptions");
-
         if(isEmpty(this.markets))
             return;
 
@@ -287,7 +284,7 @@ export class Collector {
             await closeStreams(this.streams);
             this.streams.clear();
 
-            await sleep( 2500 * 60);
+            await sleep( 5 * 1000);
 
             this.streamDisconnectFlag = false;
             console.log("Done cancelling subscriptions");
@@ -339,7 +336,6 @@ export class Collector {
             clearInterval(this.orderbookTimer);
             clearInterval(this.subscanTimer);
             clearInterval(this.mainnetTimer);
-            clearInterval(this.subscriptionTimer);
 
             for (let key of this.streams.keys()) {
                 try {
@@ -372,17 +368,22 @@ export class Collector {
             }, UPDATE_SUBSCAN_FREQUENCY);
         }, 1000 * 60 * 5);
 
-        setTimeout(() => {
-            this.subscriptionTimer = setInterval(() => {
-                this.startSubscriptions()
-            }, UPDATE_STREAMS_FREQUENCY);
-        }, 1000 * 60 * 10);
 
         setTimeout(() => {
             this.mainnetTimer = setInterval(() => {
                 this.updateMainnetData();
             }, UPDATE_MAINNET_FREQUENCY);
         }, 1000 * 60 * 15);
+
+        const this2 = this;
+        new CronJob('*/5 * * * * *',
+            async function () {
+                await this2.startSubscriptions();
+            },
+            null,
+            true,
+            'Etc/UTC'
+        );
 
         new CronJob('0 5 0 * * *',
             async function () {
