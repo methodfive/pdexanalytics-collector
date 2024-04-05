@@ -221,7 +221,7 @@ export class Collector {
                     this.assets.get(key).fees = Number(this.assets.get(key).fees);
 
                 if(this.assets.get(key).price != null)
-                    this.assets.get(key).fees_value = this.assets.get(key).fees * this.assets.get(key).price;
+                    this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
             }
         }
 
