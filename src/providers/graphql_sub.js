@@ -58,13 +58,14 @@ export const getWsClient = function(wsurl, onDisconnect, onReconnect, onHandlerL
     wsClient = new UUIDOperationIdSubscriptionClient(wsurl, {
         reconnect: true,
         timeout: 5 * 60 * 1000,
+        keepAlive: 5 * 1000,
         lazy: false
     }, createAppSyncAuthorizedWebSocket(getAppSyncAuthorizationInfo, onHandlerLoss), ['graphql-ws']);
 
     wsClient.use([createAppSyncGraphQLOperationAdapter(getAppSyncAuthorizationInfo)])
     wsClient.onConnected(data => {console.log('WSS connected', data)});
     wsClient.onError(data  => console.error('WSS error', data.message));
-    wsClient.onDisconnected(data => { console.error('WSS disconnected'); onDisconnect();});
+    wsClient.onDisconnected(data => { console.log('WSS disconnected'); onDisconnect();});
     wsClient.onReconnected(data => { console.log('WSS reconnected'); onReconnect();});
 
     return wsClient;

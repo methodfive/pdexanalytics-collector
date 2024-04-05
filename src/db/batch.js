@@ -48,4 +48,6 @@ export async function nightlyJob()
     await cleanTrades();
     await cleanExchange();
     await cleanAssets();
+
+    console.log("Done night job");
 }

@@ -12,10 +12,11 @@ export async function saveExchangeDaily(stats)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, users, tvl, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users) values (CURDATE(), ?, (select sum(tvl) from assets), ?, ?, ?, ?, ?, ?, ?, ?) as new_data
+            `INSERT INTO exchange_daily (stat_date, users, tvl, total_fees, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users) values (CURDATE(), ?, (select sum(tvl) from assets), (select sum(fees_value) from assets where fees_value is not null), ?, ?, ?, ?, ?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
             users = IF(new_data.users is null, exchange_daily.users, new_data.users),
             tvl = IF(new_data.tvl is null, exchange_daily.tvl, new_data.tvl),
+            total_fees = IF(new_data.total_fees is null, exchange_daily.total_fees, new_data.total_fees),
             total_staked = IF(new_data.total_staked is null, exchange_daily.total_staked, new_data.total_staked),
             staked_tvl = IF(new_data.staked_tvl is null, exchange_daily.staked_tvl, new_data.staked_tvl),
             total_holders = IF(new_data.total_holders is null, exchange_daily.total_holders, new_data.total_holders),
@@ -61,6 +62,7 @@ CROSS JOIN (SELECT COUNT(*) AS prev_trades, SUM(volume) AS prev_volume
     WHERE timestamp < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND timestamp > DATE_SUB(NOW(), INTERVAL 48 HOUR)) ag2 
 SET 
     exchange_24h.tvl = COALESCE(exchange_daily.tvl, 0),
+    exchange_24h.total_fees = COALESCE(exchange_daily.total_fees, 0),
     exchange_24h.volume = COALESCE(ag1.volume, 0),
     exchange_24h.users = COALESCE(exchange_daily.users, 0),
     exchange_24h.new_users = COALESCE(exchange_daily.users, 0) - COALESCE(previous_data.users, 0),
@@ -74,6 +76,7 @@ SET
     exchange_24h.treasury_tvl = COALESCE(exchange_daily.treasury_tvl, 0),
     exchange_24h.previous_tvl = COALESCE(previous_data.tvl, 0),
     previous_volume = COALESCE(ag2.prev_volume, 0),
+    exchange_24h.previous_total_fees = COALESCE(previous_data.total_fees, 0),
     exchange_24h.previous_users = COALESCE(previous_data.users, 0),
     exchange_24h.previous_new_users = COALESCE(previous_data.users, 0) - COALESCE(previous_previous_data.users, 0),
     exchange_24h.previous_trades = COALESCE(ag2.prev_trades, 0),
@@ -122,10 +125,11 @@ export async function newExchangeDailyDay()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO exchange_daily (stat_date, tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
-select CURDATE(), tvl, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
+            `INSERT INTO exchange_daily (stat_date, tvl, total_fees, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
+select CURDATE(), tvl, null, users, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily old_exchange_daily where stat_date != CURDATE() order by stat_date desc limit 1
 ON DUPLICATE KEY UPDATE 
             tvl = IF(exchange_daily.tvl is null, old_exchange_daily.tvl, exchange_daily.tvl),
+            total_fees = IF(exchange_daily.total_fees is null, old_exchange_daily.total_fees, exchange_daily.total_fees),
             users = IF(exchange_daily.users is null, old_exchange_daily.users, exchange_daily.users),
             new_users = IF(exchange_daily.new_users is null, old_exchange_daily.new_users, exchange_daily.new_users),
             total_staked = IF(exchange_daily.total_staked is null, old_exchange_daily.total_staked, exchange_daily.total_staked),
@@ -177,8 +181,8 @@ export async function updateExchangeHourly(currentTime)
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into exchange_hourly (stat_time, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
-        select ?, tvl, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily order by stat_date desc limit 1`,
+            `insert into exchange_hourly (stat_time, tvl, total_fees, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users)
+        select ?, tvl, total_fees, volume, users, trades, total_staked, staked_tvl, total_holders, total_stakers, total_issuance, treasury_balance, treasury_tvl, new_users from exchange_daily order by stat_date desc limit 1`,
             [currentTime],
             ([rows,fields]) => {},
             DB_RETRIES

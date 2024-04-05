@@ -25,7 +25,7 @@ export function convertBalance(amount)
     if(isEmpty(amount))
         return;
 
-    return (Number(amount) * Math.pow(10,-12)).toFixed(6);
+    return trimDecimals((Number(amount) * Math.pow(10,-12)), 6);
 }
 
 export function convertAmountToReadable(amount)
@@ -33,7 +33,23 @@ export function convertAmountToReadable(amount)
     if(isEmpty(amount))
         return;
 
-    return (Number(amount) * Math.pow(10,-12)).toFixed(2);
+    return trimDecimals((Number(amount) * Math.pow(10,-12)), 2);
+}
+
+export function trimDecimals(number, decimalPlaces)
+{
+    if(isEmpty(number) || isEmpty(decimalPlaces))
+        return;
+
+    let options = {
+        minimumFractionDigits: decimalPlaces,
+        maximumFractionDigits: decimalPlaces,
+        roundingMode: 'floor',
+        useGrouping: false
+    };
+
+    const formatter = Intl.NumberFormat("en-US", options);
+    return formatter.format(number);
 }
 
 export function calculateTVL(amount, price)

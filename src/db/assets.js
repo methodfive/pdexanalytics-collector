@@ -8,14 +8,18 @@ export async function updateAssets24H() {
 
         await queryAsyncWithRetries(connectionPool,
             `
-INSERT INTO assets_24h(asset_id, tvl, price, balance, volume, trades, previous_tvl, previous_price, previous_balance, previous_volume, previous_trades)   
+INSERT INTO assets_24h(asset_id, tvl, fees, fees_value, price, balance, volume, trades, previous_tvl, previous_fees, previous_fees_value, previous_price, previous_balance, previous_volume, previous_trades)   
 SELECT assets.asset_id, 
     COALESCE(assets.tvl, 0) AS tvl, 
+    COALESCE(assets.fees,0) AS fees, 
+    COALESCE(assets.fees_value,0) AS fees_value, 
     COALESCE(assets.price,0) AS price, 
     assets.balance, 
     COALESCE(ag1.volume,0) AS volume, 
     COALESCE(ag1.trades,0) AS trades, 
     COALESCE(previous.tvl,0) AS previous_tvl, 
+    COALESCE(previous.fees,0) AS previous_fees, 
+    COALESCE(previous.fees_value,0) AS previous_fees_value, 
     COALESCE(previous.price,0) AS previous_price, 
     COALESCE(previous.balance,0) AS previous_balance, 
     COALESCE(ag2.volume, 0) AS previous_volume,  
@@ -54,6 +58,8 @@ LEFT OUTER JOIN (
 ) ag2 ON ag2.asset_id = assets.asset_id 
 ON DUPLICATE KEY UPDATE 
     tvl = COALESCE(assets.tvl, 0), 
+    fees = COALESCE(assets.fees,0), 
+    fees_value = COALESCE(assets.fees_value,0), 
     price = COALESCE(assets.price,0), 
     balance = assets.balance, 
     volume = COALESCE(ag1.volume,0), 
@@ -93,22 +99,22 @@ export async function updateAssetsDaily(yesterday)
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into assets_daily (stat_date, asset_id, balance, price, tvl, volume, trades) 
-select stat_date, asset_id, avg(balance) as balance, avg(price) as price, sum(tvl) as tvl, sum(volume) as volume, sum(trades) as trades from (
+            `insert into assets_daily (stat_date, asset_id, fees, fees_value, balance, price, tvl, volume, trades) 
+select stat_date, asset_id, avg(fees) as fees, avg(fees_value) as fees_value, avg(balance) as balance, avg(price) as price, sum(tvl) as tvl, sum(volume) as volume, sum(trades) as trades from (
  
- select date(timestamp) as stat_date, base_asset_id as asset_id, (select balance from assets where asset_id = trades.base_asset_id) as balance, (select price from assets where asset_id = trades.base_asset_id) as price, (select tvl from assets where asset_id = trades.base_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
+ select date(timestamp) as stat_date, base_asset_id as asset_id, (select fees from assets where asset_id = trades.base_asset_id) as fees, (select fees_value from assets where asset_id = trades.base_asset_id) as fees_value, (select balance from assets where asset_id = trades.base_asset_id) as balance, (select price from assets where asset_id = trades.base_asset_id) as price, (select tvl from assets where asset_id = trades.base_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
 where date(timestamp) = ` + currentDate + `
 group by base_asset_id, date(stat_date)
 
 union
 
-select date(timestamp) as stat_date, quote_asset_id as asset_id, (select balance from assets where asset_id = trades.quote_asset_id) as balance, (select price from assets where asset_id = trades.quote_asset_id) as price, (select tvl from assets where asset_id = trades.quote_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
+select date(timestamp) as stat_date, quote_asset_id as asset_id, (select fees from assets where asset_id = trades.quote_asset_id) as fees, (select fees_value from assets where asset_id = trades.quote_asset_id) as fees_value, (select balance from assets where asset_id = trades.quote_asset_id) as balance, (select price from assets where asset_id = trades.quote_asset_id) as price, (select tvl from assets where asset_id = trades.quote_asset_id) as tvl, sum(volume) as volume, count(*) as trades from trades
 where date(timestamp) = ` + currentDate + `
 group by quote_asset_id, date(stat_date)
 
 union
 
-select ` + currentDate + ` as stat_date, asset_id, balance, price, 
+select ` + currentDate + ` as stat_date, asset_id, fees, fees_value, balance, price, 
 tvl, 0, 0 from assets 
 where not exists (select * from trades where base_asset_id=assets.asset_id or quote_asset_id = assets.asset_id)
                 
@@ -146,15 +152,17 @@ export async function saveAsset(asset)
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO assets (asset_id, symbol, name, price, tvl, is_active, balance) values (?, ?, ?, ?, ?, ?, ?) as new_data 
+            `INSERT INTO assets (asset_id, symbol, name, price, tvl, is_active, balance, fees, fees_value) values (?, ?, ?, ?, ?, ?, ?, ?, ?) as new_data 
              ON DUPLICATE KEY UPDATE 
                 symbol = new_data.symbol,
                 name = new_data.name,
                 price = IF(new_data.price is null, assets.price, new_data.price),
                 tvl = IF(new_data.tvl is null, assets.tvl, new_data.tvl),
                 is_active = new_data.is_active,
-                balance = IF(new_data.balance is null, assets.balance, new_data.balance)`,
-            [asset.asset_id, asset.symbol, asset.name, asset.price, asset.tvl, 1, convertBalance(asset.balance)],
+                balance = IF(new_data.balance is null, assets.balance, new_data.balance),
+                fees = IF(new_data.fees is null, assets.fees, new_data.fees),
+                fees_value = IF(new_data.fees_value is null, assets.fees_value, new_data.fees_value)`,
+            [asset.asset_id, asset.symbol, asset.name, asset.price, asset.tvl, 1, convertBalance(asset.balance), asset.fees, asset.fees_value],
             ([rows,fields]) => {},
             DB_RETRIES
         );
@@ -194,8 +202,8 @@ export async function updateAssetsHourly(currentTime)
         );
 
         await queryAsyncWithRetries(connectionPool,
-            `insert into assets_hourly (stat_time,asset_id, tvl, price, balance)
-        select ?, asset_id, tvl, price, balance from assets`,
+            `insert into assets_hourly (stat_time,asset_id, tvl, price, balance, fees, fees_value)
+        select ?, asset_id, tvl, price, balance, fees, fees_value from assets`,
             [currentTime],
             ([rows,fields]) => {},
             DB_RETRIES
@@ -206,3 +214,31 @@ export async function updateAssetsHourly(currentTime)
     }
 }
 
+export async function getPreviousFeeTotal()
+{
+    let results = new Map();
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `select assets.asset_id, assets_daily.fees from assets assets 
+                 JOIN (SELECT MAX(assets_daily.stat_date) AS stat_date, asset_id FROM assets_daily where stat_date <= DATE_SUB(CURDATE(), INTERVAL 1 DAY) group by asset_id) previous_assets_daily on previous_assets_daily.asset_id = assets.asset_id 
+                 JOIN assets_daily assets_daily on assets_daily.stat_date = previous_assets_daily.stat_date and assets_daily.asset_id = assets.asset_id `,
+            [],
+            ([rows,fields]) => {
+                for(let i = 0; i < rows.length; i++)
+                {
+                    if(rows[i].fees == null)
+                        rows[i].fees = 0;
+
+                    results.set(rows[i].asset_id, rows[i]);
+                }
+            },
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.error("Error getting previous days fee total",e);
+    }
+    return results;
+}

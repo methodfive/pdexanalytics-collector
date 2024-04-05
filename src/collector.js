@@ -2,15 +2,23 @@ import "@polkadot/api-augment"
 import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
 import {getAssetBalances, getPDEXBalance, getTotalIssuance, getTotalStaked} from "./providers/mainnet.js";
 import {
+    FEES_WALLET,
     FILTERED_ASSETS,
     LMP_WALLET,
     PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, TREASURY_WALLET, UPDATE_MAINNET_FREQUENCY,
     UPDATE_ORDERBOOK_FREQUENCY,
-    UPDATE_STREAMS_FREQUENCY,
     UPDATE_SUBSCAN_FREQUENCY,
     USDT_ASSETS
 } from "./constants.js";
-import {calculateTVL, convertAmountToReadable, getAssetsFromMarket, isEmpty, isMapEmpty, sleep} from "./util.js";
+import {
+    calculateTVL,
+    convertAmountToReadable,
+    convertBalance,
+    getAssetsFromMarket,
+    isEmpty,
+    isMapEmpty,
+    sleep
+} from "./util.js";
 import {getRegisteredUsers, getTotalHolders, getTotalStakers} from "./providers/subscan.js";
 import {
     closeConnectionPool
@@ -19,7 +27,7 @@ import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_su
 import {CronJob} from "cron";
 import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
 import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
-import {saveAsset, saveAssets} from "./db/assets.js";
+import {getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
 
@@ -101,6 +109,7 @@ export class Collector {
         try {
             await this.updateTVL();
             await this.updateIssuance();
+            await this.updateFees();
         }
         finally
         {
@@ -176,7 +185,9 @@ export class Collector {
         if(isMapEmpty(this.assets))
             return;
 
-        await getAssetBalances(this.assets, LMP_WALLET);
+        await getAssetBalances(this.assets, LMP_WALLET, function(assets, asset, balance) {
+            assets.get(asset).balance = balance;
+        });
 
         for (let key of this.assets.keys()) {
             let asset = this.assets.get(key);
@@ -186,6 +197,36 @@ export class Collector {
                 await saveAsset(asset);
             }
         }
+    }
+
+    async updateFees()
+    {
+        console.log("updateFees");
+
+        if(isMapEmpty(this.assets))
+            return;
+
+        let previousDaysFees = await getPreviousFeeTotal();
+
+        await getAssetBalances(this.assets, FEES_WALLET, function(assets, asset, balance) {
+            assets.get(asset).fees = convertBalance(balance);
+        });
+
+        for (let key of this.assets.keys()) {
+            if(previousDaysFees.has(key) && this.assets.get(key).fees != null)
+            {
+                this.assets.get(key).fees = Number(this.assets.get(key).fees) - Number(previousDaysFees.get(key).fees);
+
+                if(this.assets.get(key).fees < 0) // this should never happen, unless funds were withdrawn from the fee wallet
+                    this.assets.get(key).fees = Number(this.assets.get(key).fees);
+
+                if(this.assets.get(key).price != null)
+                    this.assets.get(key).fees_value = this.assets.get(key).fees * this.assets.get(key).price;
+            }
+        }
+
+        console.log(this.assets);
+        await saveAssets(this.assets);
     }
 
     async updateStaked()
@@ -365,7 +406,6 @@ export class Collector {
                 this.updateSubscanData()
             }, UPDATE_SUBSCAN_FREQUENCY);
         }, 1000 * 60 * 5);
-
 
         setTimeout(() => {
             this.mainnetTimer = setInterval(() => {

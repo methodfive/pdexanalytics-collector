@@ -210,3 +210,21 @@ alter table exchange_daily add new_users int null;
 alter table exchange_hourly add new_users int null;
 alter table exchange_24h add new_users int null;
 alter table exchange_24h add previous_new_users int null;
+
+alter table assets add fees decimal(18,9) null;
+alter table assets add fees_value decimal(12,2) null;
+
+alter table assets_daily add fees decimal(18,9) null;
+alter table assets_hourly add fees decimal(18,9) null;
+alter table assets_24h add fees decimal(18,9) null;
+alter table assets_24h add previous_fees decimal(18,9) null;
+
+alter table assets_daily add fees_value decimal(12,2) null;
+alter table assets_hourly add fees_value decimal(12,2) null;
+alter table assets_24h add fees_value decimal(12,2) null;
+alter table assets_24h add previous_fees_value decimal(12,2) null;
+
+alter table exchange_daily add total_fees decimal(12,2) null;
+alter table exchange_hourly add total_fees decimal(12,2) null;
+alter table exchange_24h add total_fees decimal(12,2) null;
+alter table exchange_24h add previous_total_fees decimal(12,2) null;

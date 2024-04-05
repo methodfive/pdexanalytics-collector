@@ -2,7 +2,7 @@ import {ApiPromise, WsProvider} from "@polkadot/api";
 import {PDEX_ASSET, RPC_ENDPOINTS} from "../constants.js";
 import {isEmpty, isMapEmpty} from "../util.js";
 
-export async function getAssetBalances(assets, wallet) {
+export async function getAssetBalances(assets, wallet, setBalance) {
     if(isMapEmpty(assets) || isEmpty(wallet))
         return;
 
@@ -20,10 +20,10 @@ export async function getAssetBalances(assets, wallet) {
     for(let i = 0; i < results.length; i++)
     {
         if(results[i].toPrimitive() != null) {
-            assets.get(requestedAssets[i][0]).balance = Number(results[i].toPrimitive().balance);
+            setBalance(assets, requestedAssets[i][0], Number(results[i].toPrimitive().balance));
         }
     }
-    assets.get(PDEX_ASSET).balance = await getPDEXBalance(wallet);
+    setBalance(assets, PDEX_ASSET, await getPDEXBalance(wallet));
 
     await wsProvider.disconnect();
 
