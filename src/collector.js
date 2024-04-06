@@ -192,6 +192,7 @@ export class Collector {
         for (let key of this.assets.keys()) {
             let asset = this.assets.get(key);
             this.updateAssetTVL(asset);
+            this.updateFeeValue(asset);
 
             if(asset.tvl != null) {
                 await saveAsset(asset);
@@ -456,6 +457,18 @@ export class Collector {
             true,
             'Etc/UTC'
         );
+    }
+
+    updateFeeValue(asset) {
+        if(isEmpty(asset.price) || isEmpty(asset.fees))
+            return;
+
+        asset.fees_value = Number(asset.fees) * Number(asset.price);
+
+        if(isEmpty(asset.price) || isEmpty(asset.new_fees))
+            return;
+
+        asset.new_fees_value = Number(asset.new_fees) * Number(asset.price);
     }
 
     updateAssetTVL(asset) {
