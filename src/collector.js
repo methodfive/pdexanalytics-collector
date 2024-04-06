@@ -206,22 +206,27 @@ export class Collector {
         if(isMapEmpty(this.assets))
             return;
 
-        let previousDaysFees = await getPreviousFeeTotal();
-
         await getAssetBalances(this.assets, FEES_WALLET, function(assets, asset, balance) {
             assets.get(asset).fees = convertBalance(balance);
         });
 
-        for (let key of this.assets.keys()) {
-            if(previousDaysFees.has(key) && this.assets.get(key).fees != null)
-            {
-                this.assets.get(key).fees = Number(this.assets.get(key).fees) - Number(previousDaysFees.get(key).fees);
+        this.assets.get(key).fees = Number(this.assets.get(key).fees)
 
-                if(this.assets.get(key).fees < 0) // this should never happen, unless funds were withdrawn from the fee wallet
-                    this.assets.get(key).fees = Number(this.assets.get(key).fees);
+        if(this.assets.get(key).price != null)
+            this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
 
-                if(this.assets.get(key).price != null)
-                    this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
+        let previousDaysFees = await getPreviousFeeTotal();
+        if(previousDaysFees != null) {
+            for (let key of this.assets.keys()) {
+                if (previousDaysFees.has(key) && this.assets.get(key).fees != null) {
+                    this.assets.get(key).new_fees = Number(this.assets.get(key).fees) - Number(previousDaysFees.get(key).fees);
+
+                    if (this.assets.get(key).new_fees < 0) // this should never happen, unless funds were withdrawn from the fee wallet
+                        this.assets.get(key).new_fees = Number(this.assets.get(key).new_fees);
+
+                    if (this.assets.get(key).price != null)
+                        this.assets.get(key).new_fees_value = Number(this.assets.get(key).new_fees) * Number(this.assets.get(key).price);
+                }
             }
         }
 
