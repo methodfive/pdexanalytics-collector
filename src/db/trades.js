@@ -48,7 +48,7 @@ export async function cleanTrades()
         let connectionPool = getConnection();
 
         await queryAsyncWithRetries(connectionPool,
-            `delete from trades where timestamp <= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
+            `delete from trades where timestamp <= DATE_SUB(CURDATE(), INTERVAL 60 DAY)`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
