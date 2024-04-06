@@ -210,10 +210,12 @@ export class Collector {
             assets.get(asset).fees = convertBalance(balance);
         });
 
-        this.assets.get(key).fees = Number(this.assets.get(key).fees)
+        for (let key of this.assets.keys()) {
+            this.assets.get(key).fees = Number(this.assets.get(key).fees)
 
-        if(this.assets.get(key).price != null)
-            this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
+            if (this.assets.get(key).price != null)
+                this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
+        }
 
         let previousDaysFees = await getPreviousFeeTotal();
         if(previousDaysFees != null) {
