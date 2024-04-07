@@ -229,10 +229,11 @@ export async function updateAllTime()
 
         await queryAsyncWithRetries(connectionPool,
             `update exchange_alltime exchange_alltime
-                join (select sum(volume) as volume, sum(trades) as trades, total_fees from exchange_daily order by stat_date desc limit 1) exchange_daily 
-                set exchange_alltime.volume = exchange_daily.volume,
-                    exchange_alltime.trades = exchange_daily.trades,
-                    exchange_alltime.total_fees = exchange_daily.total_fees`,
+                    join (select sum(volume) as volume, sum(trades) as trades from exchange_daily) exchange_daily
+                    join (select total_fees from exchange_daily order by stat_date desc limit 1) fees_daily 
+                    set exchange_alltime.volume = exchange_daily.volume,
+                          exchange_alltime.trades = exchange_daily.trades,
+                          exchange_alltime.total_fees = fees_daily.total_fees`,
             [],
             ([rows,fields]) => {},
             DB_RETRIES
