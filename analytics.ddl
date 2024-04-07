@@ -1,4 +1,5 @@
 DROP TABLE pdexanalytics.trades;
+DROP TABLE pdexanalytics.exchange_alltime;
 DROP TABLE pdexanalytics.exchange_hourly;
 DROP TABLE pdexanalytics.exchange_24h;
 DROP TABLE pdexanalytics.markets_24h;
@@ -251,3 +252,11 @@ alter table exchange_daily add new_total_fees decimal(12,2) null;
 alter table exchange_hourly add new_total_fees decimal(12,2) null;
 alter table exchange_24h add new_total_fees decimal(12,2) null;
 alter table exchange_24h add previous_new_total_fees decimal(12,2) null;
+
+CREATE TABLE pdexanalytics.exchange_alltime
+(
+  volume decimal(18,2),
+  trades int,
+  total_fees decimal(18,2)
+);
+insert into exchange_alltime (volume, trades, total_fees) values (0,0,0);

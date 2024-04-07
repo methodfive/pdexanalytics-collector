@@ -1,6 +1,6 @@
 import {
     cleanExchange,
-    newExchangeDailyDay,
+    newExchangeDailyDay, updateAllTime,
     updateExchange24H,
     updateExchangeDaily,
     updateExchangeHourly
@@ -20,6 +20,8 @@ export async function hourlyJob()
     await updateAssetsHourly(currentTime);
     await newExchangeDailyDay(); //ensure exchange_daily exists for current day
     await updateExchangeHourly(currentTime);
+
+    await updateAllTime();
 }
 
 export async function updateCaches()
@@ -48,6 +50,8 @@ export async function nightlyJob()
     await cleanTrades();
     await cleanExchange();
     await cleanAssets();
+
+    await updateAllTime();
 
     console.log("Done night job");
 }

@@ -221,3 +221,24 @@ export async function getPreviousTotalUsers()
     }
     return result;
 }
+
+export async function updateAllTime()
+{
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `update exchange_alltime exchange_alltime
+                join (select sum(volume) as volume, sum(trades) as trades, total_fees from exchange_daily order by stat_date desc limit 1) exchange_daily 
+                set exchange_alltime.volume = exchange_daily.volume,
+                    exchange_alltime.trades = exchange_daily.trades,
+                    exchange_alltime.total_fees = exchange_daily.total_fees`,
+            [],
+            ([rows,fields]) => {},
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.error("Error updating exchange all time",e);
+    }
+}
