@@ -250,3 +250,30 @@ export async function getPreviousFeeTotal()
     }
     return results;
 }
+
+export async function getAssetPrices()
+{
+    console.log("getAssetPrices:");
+
+    let connectionPool = null;
+    let results = new Map();
+
+    try {
+        connectionPool = await getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `select asset_id, price from assets`,
+            null,
+            ([rows,fields]) => {
+                for(let i = 0; i < rows.length; i++)
+                {
+                    results.set(rows[i].asset_id, rows[i].price);
+                }
+            }, DB_RETRIES);
+    }
+    catch(e) {
+        console.error("Error fetching getassets prices",e);
+    }
+
+    return results;
+}

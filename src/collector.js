@@ -27,7 +27,7 @@ import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_su
 import {CronJob} from "cron";
 import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
 import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
-import {getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
+import {getAssetPrices, getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
 
@@ -162,6 +162,9 @@ export class Collector {
         let assets = await getOrderBookAssets();
 
         if(!isMapEmpty(assets)) {
+
+            //console.log(await getAssetPrices());   use old prices as default if just starting up
+
             let oldAssets = this.assets;
             this.assets = assets;
 
@@ -173,6 +176,14 @@ export class Collector {
                 }
             }
 
+            let oldPrices = await getAssetPrices();
+            if(oldPrices !== null) {
+                for (let key of this.assets.keys()) {
+                    if (isEmpty(this.assets.get(key).price) && oldPrices.has(key)) {
+                        this.assets.get(key).price = oldPrices.get(key);
+                    }
+                }
+            }
             await saveAssets(this.assets);
         }
     }
