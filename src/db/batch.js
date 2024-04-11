@@ -28,13 +28,17 @@ export async function updateCaches()
 {
     console.log("Updating cached data for dashboard");
 
-    await updateMarkets24H();
-    await updateAssets24H();
-    await updateExchange24H();
-    await newExchangeDailyDay();
+    try {
+        await updateMarkets24H();
+        await updateAssets24H();
+        await updateExchange24H();
+        await newExchangeDailyDay();
 
-    await updateAssetsDaily();
-    await updateMarketsDaily();
+        await updateAssetsDaily();
+        await updateMarketsDaily();
+    } catch (e) {
+        console.error("Failed updating caches",e);
+    }
 }
 
 export async function nightlyJob()

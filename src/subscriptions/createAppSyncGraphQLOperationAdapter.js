@@ -15,8 +15,6 @@ export const createAppSyncGraphQLOperationAdapter = getAppSyncAuthorizationInfo 
         delete options.operationName;
         delete options.variables;
 
-        console.log(options);
-
         next();
     }
 });

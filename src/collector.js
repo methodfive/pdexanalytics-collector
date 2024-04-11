@@ -44,6 +44,7 @@ export class Collector {
     streamOkToReconnect;
 
     inUpdateSubscan;
+    inUpdateAll;
     inUpdateOrderBook;
     inUpdateMainnet;
     inStartSubscriptions;
@@ -54,6 +55,7 @@ export class Collector {
         this.streamOkToReconnect = false;
 
         this.inUpdateSubscan = false;
+        this.inUpdateAll = false;
         this.inUpdateOrderBook = false;
         this.inUpdateMainnet = false;
         this.inStartSubscriptions = false;
@@ -81,6 +83,25 @@ export class Collector {
         finally
         {
             this.inUpdateSubscan = false;
+        }
+    }
+
+    async updateAll() {
+        if(this.inUpdateAll)
+            return;
+
+        this.inUpdateAll = true;
+
+        try {
+            await updateCaches();
+
+            await this.updateOrderBookData();
+            await this.updateSubscanData();
+            await this.updateMainnetData();
+        }
+        finally
+        {
+            this.inUpdateAll = false;
         }
     }
 
@@ -405,21 +426,6 @@ export class Collector {
 
     async startTimers() {
         console.log("startTimers");
-        this.orderbookTimer = setInterval(() => {
-            this.updateOrderBookData()
-        }, UPDATE_ORDERBOOK_FREQUENCY);
-
-        setTimeout(() => {
-            this.subscanTimer = setInterval(() => {
-                this.updateSubscanData()
-            }, UPDATE_SUBSCAN_FREQUENCY);
-        }, 1000 * 60 * 5);
-
-        setTimeout(() => {
-            this.mainnetTimer = setInterval(() => {
-                this.updateMainnetData();
-            }, UPDATE_MAINNET_FREQUENCY);
-        }, 1000 * 60 * 15);
 
         const this2 = this;
         new CronJob('*/5 * * * * *',
@@ -451,7 +457,7 @@ export class Collector {
 
         new CronJob('0 */5 * * * *',
             async function () {
-                await updateCaches();
+                await this2.updateAll();
             },
             null,
             true,
