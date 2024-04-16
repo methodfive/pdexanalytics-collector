@@ -69,3 +69,19 @@ export function sleep(ms) {
 export function getFlooredFixed(v, d) {
     return (Math.floor(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
 }
+
+export const asyncCallWithTimeout = async (asyncPromise, timeLimit) => {
+    let timeoutHandle;
+
+    const timeoutPromise = new Promise((_resolve, reject) => {
+        timeoutHandle = setTimeout(
+            () => reject(new Error('Async call timeout limit reached')),
+            timeLimit
+        );
+    });
+
+    return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+        clearTimeout(timeoutHandle);
+        return result;
+    })
+}

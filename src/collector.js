@@ -5,9 +5,7 @@ import {
     FEES_WALLET,
     FILTERED_ASSETS,
     LMP_WALLET,
-    PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, TREASURY_WALLET, UPDATE_MAINNET_FREQUENCY,
-    UPDATE_ORDERBOOK_FREQUENCY,
-    UPDATE_SUBSCAN_FREQUENCY,
+    PDEX_ASSET, SUBSCAN_RATELIMIT_PAUSE, TREASURY_WALLET,
     USDT_ASSETS
 } from "./constants.js";
 import {
@@ -43,10 +41,6 @@ export class Collector {
     streamDisconnectFlag;
     streamOkToReconnect;
 
-    inUpdateSubscan;
-    inUpdateAll;
-    inUpdateOrderBook;
-    inUpdateMainnet;
     inStartSubscriptions;
 
     constructor() {
@@ -54,88 +48,105 @@ export class Collector {
         this.streamDisconnectFlag = false;
         this.streamOkToReconnect = false;
 
-        this.inUpdateSubscan = false;
-        this.inUpdateAll = false;
-        this.inUpdateOrderBook = false;
-        this.inUpdateMainnet = false;
         this.inStartSubscriptions = false;
 
         this.handleShutdown();
     }
 
     async updateSubscanData() {
-        if(this.inUpdateSubscan)
-            return;
-
-        this.inUpdateSubscan = true;
-
         try {
             await this.updateUsers();
+        }
+        catch(e)
+        {
+            console.error("Failed updating users", e);
+        }
 
-            await sleep(SUBSCAN_RATELIMIT_PAUSE);
+        await sleep(SUBSCAN_RATELIMIT_PAUSE);
 
+        try {
             await this.updateStaked();
+        }
+        catch(e)
+        {
+            console.error("Failed updating staked", e);
+        }
 
-            await sleep(SUBSCAN_RATELIMIT_PAUSE);
+        await sleep(SUBSCAN_RATELIMIT_PAUSE);
 
+        try
+        {
             await this.updateTreasury();
         }
-        finally
+        catch(e)
         {
-            this.inUpdateSubscan = false;
+            console.error("Failed updating trasury", e);
         }
     }
 
     async updateAll() {
-        if(this.inUpdateAll)
-            return;
-
-        this.inUpdateAll = true;
-
-        try {
-            await updateCaches();
-
-            await this.updateOrderBookData();
-            await this.updateSubscanData();
-            await this.updateMainnetData();
-        }
-        finally
+        try
         {
-            this.inUpdateAll = false;
+            await updateCaches();
         }
+        catch(e)
+        {
+            console.error("Failed updating caches", e);
+        }
+
+        await this.updateOrderBookData();
+        await this.updateMainnetData();
+        await this.updateSubscanData();
     }
 
     async updateOrderBookData() {
-        if(this.inUpdateOrderBook)
-            return;
-
-        this.inUpdateOrderBook = true;
-
-        try {
+        try
+        {
             await this.updateAssets();
+        }
+        catch(e)
+        {
+            console.error("Failed updating assets", e);
+        }
+
+        try
+        {
             await this.updateMarkets();
         }
-        finally
+        catch(e)
         {
-            this.inUpdateOrderBook = false;
+            console.error("Failed updating markets", e);
         }
     }
 
     async updateMainnetData() {
-        if(this.inUpdateMainnet)
-            return;
-
-        this.inUpdateMainnet = true;
-
-        try {
+        try
+        {
             await this.updateTVL();
+        }
+        catch(e)
+        {
+            console.error("Failed updating tvl", e);
+        }
+
+        try
+        {
             await this.updateIssuance();
+        }
+        catch(e)
+        {
+            console.error("Failed updating issuance", e);
+        }
+
+        try
+        {
             await this.updateFees();
         }
-        finally
+        catch(e)
         {
-            this.inUpdateMainnet = false;
+            console.error("Failed updating fees", e);
         }
+
     }
 
     async updateUsers() {
@@ -206,6 +217,9 @@ export class Collector {
         console.log("updateIssuance");
 
         let totalIssuance = await getTotalIssuance();
+
+        if(isEmpty(totalIssuance))
+            return;
 
         await saveExchangeDaily({
             total_issuance: convertAmountToReadable(totalIssuance)});
