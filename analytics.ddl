@@ -265,3 +265,7 @@ alter table trades add volume_quote decimal(20,10) null;
 alter table markets_daily add column volume_quote decimal(20,10) null;
 alter table markets_24h add column volume_quote decimal(20,10) null;
 alter table markets_24h add column previous_volume_quote decimal(20,10) null;
+
+alter table markets_daily add column volume_base decimal(20,10) null;
+alter table markets_24h add column volume_base decimal(20,10) null;
+alter table markets_24h add column previous_volume_base decimal(20,10) null;
