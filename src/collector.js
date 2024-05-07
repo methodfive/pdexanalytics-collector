@@ -352,6 +352,16 @@ export class Collector {
 
             if(oldPrice != trade.p)
                 await saveAsset(asset);
+
+            trade.v = trade.vq;
+        }
+        else
+        {
+            let price = this.getAssetPrice(pairs[1]);
+
+            if(price != null) {
+                trade.v = trade.vq * price;
+            }
         }
 
         await saveTrade(trade);

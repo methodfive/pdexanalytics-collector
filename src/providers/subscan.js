@@ -3,7 +3,7 @@ import {
     PDEX_ASSET,
     POLKADEX_SUBSCAN_EVENTS_URL,
     POLKADEX_SUBSCAN_HOLDERS_URL,
-    POLKADEX_SUBSCAN_STATISTICS_URL
+    POLKADEX_SUBSCAN_STATISTICS_URL, POLKADEX_SUBSCAN_TRANSFERS_API, SUBSCAN_ROW_LIMIT
 } from "../constants.js";
 
 const require = createRequire(import.meta.url);
@@ -77,6 +77,30 @@ export async function getTotalStakers() {
         }
         return null;
     }
+    else
+        return null;
+}
+
+export async function getTransfers(after_id) {
+    let id = after_id === null ? null : [after_id.block_num, after_id.event_idx];
+
+    let response = await axios.post(POLKADEX_SUBSCAN_TRANSFERS_API, {
+        after_id: id,
+        order: "asc",
+        page: 0,
+        row: SUBSCAN_ROW_LIMIT
+    },{
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.SUBSCAN_API_KEY
+        }
+    }).catch(function (error) {
+        console.log(error);
+        return null;
+    });
+
+    if(response != null && response.data != null && response.data.code == 0)
+        return response.data.data.transfers;
     else
         return null;
 }

@@ -260,3 +260,8 @@ CREATE TABLE pdexanalytics.exchange_alltime
   total_fees decimal(18,2)
 );
 insert into exchange_alltime (volume, trades, total_fees) values (0,0,0);
+
+alter table trades add volume_quote decimal(20,10) null;
+alter table markets_daily add column volume_quote decimal(20,10) null;
+alter table markets_24h add column volume_quote decimal(20,10) null;
+alter table markets_24h add column previous_volume_quote decimal(20,10) null;

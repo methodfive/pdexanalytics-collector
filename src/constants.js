@@ -18,9 +18,11 @@ export const UPDATE_MAINNET_FREQUENCY = 1000 * 60 * 5;
 export const UPDATE_ORDERBOOK_FREQUENCY = 1000 * 60 * 5;
 export const UPDATE_SUBSCAN_FREQUENCY = 1000 * 60 * 5;
 export const SUBSCAN_RATELIMIT_PAUSE = 2500;
+export const SUBSCAN_ROW_LIMIT = 100;
 
 export const POLKADEX_SUBSCAN_EVENTS_URL = "https://polkadex.api.subscan.io/api/v2/scan/events";
 export const POLKADEX_SUBSCAN_HOLDERS_URL = "https://polkadex.api.subscan.io/api/scan/token/holders";
 export const POLKADEX_SUBSCAN_STATISTICS_URL = "https://polkadex.api.subscan.io/api/scan/accounts/statistics";
+export const POLKADEX_SUBSCAN_TRANSFERS_API = "https://polkadex.api.subscan.io/api/scan/assets/transfers";
 
 export const DB_RETRIES = 3;
