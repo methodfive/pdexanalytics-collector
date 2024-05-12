@@ -66,6 +66,18 @@ CREATE TABLE pdexanalytics.exchange_daily
   PRIMARY KEY (stat_date)
 );
 
+CREATE TABLE pdexanalytics.markets_hourly
+(
+  stat_time timestamp not null,
+  base_asset_id varchar(64) not null,
+  quote_asset_id varchar(64) not null,
+  price decimal(20,10) null,
+  PRIMARY KEY (stat_time, base_asset_id, quote_asset_id),
+  FOREIGN KEY (base_asset_id) REFERENCES assets(asset_id),
+  FOREIGN KEY (quote_asset_id) REFERENCES assets(asset_id)
+);
+ALTER TABLE markets_hourly ADD INDEX market_pair_index (base_asset_id, quote_asset_id);
+
 CREATE TABLE pdexanalytics.markets_daily
 (
   stat_date date not null,
@@ -273,3 +285,4 @@ alter table markets_24h add column previous_volume_base decimal(20,10) null;
 alter table pdexanalytics.markets add price decimal(20,10) null;
 alter table pdexanalytics.markets_24h add price_high decimal(20,10) null;
 alter table pdexanalytics.markets_24h add price_low decimal(20,10) null;
+alter table pdexanalytics.markets_24h add price_24h decimal(20,10) null;
