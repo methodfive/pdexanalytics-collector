@@ -1,10 +1,21 @@
-import {getAssetsFromMarket, isEmpty} from "../util.js";
+import {getAssetsFromMarket, isEmpty, isMapEmpty} from "../util.js";
 import {getConnection, queryAsyncWithRetries} from "./database.js";
 import {DB_RETRIES} from "../constants.js";
 
+export async function saveMarkets(markets)
+{
+    if(isMapEmpty(markets))
+        return;
+
+    for (let key of markets.keys()) {
+        let market = markets.get(key);
+        await saveMarket(market);
+    }
+}
+
 export async function saveMarket(market)
 {
-    if(isEmpty(market))
+    if(market == null || isEmpty(market.market))
         return;
 
     console.log("Save market:",market);
@@ -12,13 +23,14 @@ export async function saveMarket(market)
     try {
         let connectionPool = getConnection();
 
-        let marketPairs = getAssetsFromMarket(market);
+        let marketPairs = getAssetsFromMarket(market.market);
 
         await queryAsyncWithRetries(connectionPool,
-            `INSERT INTO markets (base_asset_id, quote_asset_id, is_active) values (?, ?, ?) as new_data
+            `INSERT INTO markets (base_asset_id, quote_asset_id, is_active, price) values (?, ?, ?, ?) as new_data
          ON DUPLICATE KEY UPDATE 
-            is_active = new_data.is_active`,
-            [marketPairs[0], marketPairs[1], 1],
+            is_active = new_data.is_active,
+            price = IF(new_data.price is null, markets.price, new_data.price)`,
+            [marketPairs[0], marketPairs[1], 1, market.price],
             ([rows,fields]) => {},
             DB_RETRIES
         );
@@ -69,7 +81,7 @@ export async function updateMarkets24H() {
 
         await queryAsyncWithRetries(connectionPool,
             `
-INSERT INTO markets_24h (base_asset_id, quote_asset_id, trades, volume, volume_quote, volume_base, previous_trades, previous_volume, previous_volume_quote, previous_volume_base) 
+INSERT INTO markets_24h (base_asset_id, quote_asset_id, trades, volume, volume_quote, volume_base, previous_trades, previous_volume, previous_volume_quote, previous_volume_base, price_low, price_high) 
 SELECT 
     markets.base_asset_id, 
     markets.quote_asset_id, 
@@ -80,12 +92,14 @@ SELECT
     COALESCE(ag2.trades,0) AS previous_trades, 
     COALESCE(ag2.volume,0) AS previous_volume,
     COALESCE(ag2.volume_quote,0) AS previous_volume_quote,
-    COALESCE(ag2.volume_base,0) AS previous_volume_base 
+    COALESCE(ag2.volume_base,0) AS previous_volume_base,
+    ag1.price_low, 
+    ag1.price_high
 FROM markets 
 JOIN assets a1 ON a1.asset_id = markets.base_asset_id 
 JOIN assets a2 ON a2.asset_id = markets.quote_asset_id 
 LEFT OUTER JOIN ( 
-    SELECT COUNT(*) AS trades,SUM(volume) AS volume, SUM(volume_quote) AS volume_quote, SUM(quantity) as volume_base, base_asset_id, quote_asset_id FROM trades 
+    SELECT COUNT(*) AS trades,SUM(volume) AS volume, SUM(volume_quote) AS volume_quote, SUM(quantity) as volume_base, min(price) as price_low, max(price) as price_high, base_asset_id, quote_asset_id FROM trades 
     WHERE timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR)  
     GROUP BY base_asset_id, quote_asset_id 
 ) ag1 ON ag1.base_asset_id = markets.base_asset_id AND ag1.quote_asset_id = markets.quote_asset_id 
@@ -102,7 +116,9 @@ ON DUPLICATE KEY UPDATE
     previous_trades = COALESCE(ag2.trades,0), 
     previous_volume = COALESCE(ag2.volume,0),
     previous_volume_quote = COALESCE(ag2.volume_quote,0),
-    previous_volume_base = COALESCE(ag2.volume_base,0)
+    previous_volume_base = COALESCE(ag2.volume_base,0),
+    price_low = ag1.price_low,
+    price_high = ag1.price_high
 `,
             [],
             ([rows, fields]) => {

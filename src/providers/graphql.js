@@ -48,7 +48,7 @@ export async function getOrderBookAssets() {
     return assetMap;
 }
 
-export async function getOrderBookMarkets() {
+export async function getOrderBookMarkets(assets) {
     let response = await axios.post(POLKADEX_GRAPHQL, {
         query: `query GetAllMarkets {
                   getAllMarkets {
@@ -71,16 +71,23 @@ export async function getOrderBookMarkets() {
 
     let markets = response.data.data.getAllMarkets.items;
 
-    let marketIds = [];
+    let marketMap = new Map();
     for(let i = 0; i < markets.length; i++) {
         let obj = markets[i].market;
         let pairs = getAssetsFromMarket(obj);
 
-        if(!FILTERED_ASSETS.includes(pairs[0]) ||  !FILTERED_ASSETS.includes(pairs[1])) {
-            marketIds.push(obj);
+        if(FILTERED_ASSETS.includes(pairs[0]) || FILTERED_ASSETS.includes(pairs[1])) {
+            continue;
         }
+
+        if(!assets.has(pairs[0]) || !assets.has(pairs[1]))
+        {
+            continue;
+        }
+
+        marketMap.set(obj, markets[i]);
     }
-    return marketIds;
+    return marketMap;
 }
 
 export async function getOrder(orderID) {

@@ -26,7 +26,7 @@ import {CronJob} from "cron";
 import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
 import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
 import {getAssetPrices, getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
-import {saveMarket} from "./db/markets.js";
+import {saveMarket, saveMarkets} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
 
 export class Collector {
@@ -201,15 +201,11 @@ export class Collector {
 
     async updateMarkets() {
         console.log("updateMarkets");
-        let markets = await getOrderBookMarkets();
+        let markets = await getOrderBookMarkets(this.assets);
 
         if (!isEmpty(markets)) {
             this.markets = markets;
-            for (let i = 0; i < this.markets.length; i++) {
-                if (this.marketAssetsExists(this.markets[i])) {
-                    await saveMarket(this.markets[i]);
-                }
-            }
+            await saveMarkets(this.markets);
         }
     }
 
@@ -329,6 +325,30 @@ export class Collector {
             treasury_tvl: treasuryValue});
     }
 
+    async updateMarketPrice(market, price)
+    {
+        let marketObj = this.markets.get(market);
+        let oldPrice = marketObj.price;
+        marketObj.price = price;
+
+        if(oldPrice != price) {
+            await saveMarket(marketObj);
+        }
+    }
+
+    async updateAssetPrice(assetID, price)
+    {
+        let asset = this.assets.get(assetID);
+        let oldPrice = asset.price;
+        asset.price = price;
+
+        if(oldPrice != price) {
+            this.updateAssetTVL(asset);
+            await saveAsset(asset);
+        }
+    }
+
+
     async processTrade(trade) {
         if(isMapEmpty(this.assets))
             return;
@@ -344,23 +364,19 @@ export class Collector {
             return;
         }
 
+        await this.updateMarketPrice(market, trade.p);
+
         if(USDT_ASSETS.includes(pairs[1])) {
-            let asset = this.assets.get(pairs[0]);
-            let oldPrice = asset.price;
-            asset.price = trade.p;
-            this.updateAssetTVL(asset);
-
-            if(oldPrice != trade.p)
-                await saveAsset(asset);
-
             trade.v = trade.vq;
+            await this.updateAssetPrice(pairs[0], trade.p);
         }
         else
         {
-            let price = this.getAssetPrice(pairs[1]);
+            let quoteAssetPrice = this.getAssetPrice(pairs[1]);
 
-            if(price != null) {
-                trade.v = trade.vq * price;
+            if(quoteAssetPrice != null) {
+                trade.v = Number(trade.vq) * Number(quoteAssetPrice); // calculate volume in USD
+                await this.updateAssetPrice(pairs[0], Number(trade.p) * Number(quoteAssetPrice)); // calculate price in USD
             }
         }
 
@@ -397,12 +413,10 @@ export class Collector {
 
         try {
             //initiate new streams as needed
-            for (let i = 0; i < this.markets.length; i++) {
-                let m = this.markets[i];
-
-                if (!this.streams.has(m)) {
+            for (let key of this.markets.keys()) {
+                if (!this.streams.has(key)) {
                     console.log("Starting observer for stream");
-                    let consumer = await streamTrades(m, (trade) => {
+                    let consumer = await streamTrades(key, (trade) => {
                         this.processTrade(trade);
                     }, () => {
                         //this.streamDisconnectFlag = true;
@@ -412,13 +426,13 @@ export class Collector {
                         this.streamDisconnectFlag = true;
                         this.streamOkToReconnect = true;
                     });
-                    this.streams.set(m, consumer);
+                    this.streams.set(key, consumer);
                 }
             }
 
             // disable steams for removed markets
             for (let key of this.streams.keys()) {
-                if (!this.markets.includes(key)) {
+                if (!this.markets.has(key)) {
                     try {
                         console.log("Closing stream:", key);
                         await this.streams.get(key).unsubscribe();
@@ -523,7 +537,7 @@ export class Collector {
         if(isEmpty(market) || isEmpty(this.markets))
             return false;
 
-        return this.markets.includes(market);
+        return this.markets.has(market);
     }
 
     getAssetPrice(asset)
