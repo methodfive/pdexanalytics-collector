@@ -286,3 +286,24 @@ alter table pdexanalytics.markets add price decimal(20,10) null;
 alter table pdexanalytics.markets_24h add price_high decimal(20,10) null;
 alter table pdexanalytics.markets_24h add price_low decimal(20,10) null;
 alter table pdexanalytics.markets_24h add price_24h decimal(20,10) null;
+
+CREATE TABLE pdexanalytics.orderbook_lastupdate
+(
+    last_update timestamp
+);
+
+INSERT INTO pdexanalytics.orderbook_lastupdate () VALUES();
+
+CREATE TABLE pdexanalytics.orderbook
+(
+  stid varchar(100) not null,
+  base_asset_id varchar(64) not null,
+  quote_asset_id varchar(64) not null,
+  price decimal(20,10) not null,
+  quantity decimal(20,10) not null,
+  side varchar(6) not null,
+  primary key(stid)
+);
+
+ALTER TABLE orderbook add INDEX full_orderbook_index (base_asset_id, quote_asset_id);
+ALTER TABLE orderbook add INDEX orderbook_side_index (base_asset_id, quote_asset_id, side);

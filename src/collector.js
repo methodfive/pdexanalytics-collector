@@ -1,5 +1,5 @@
 import "@polkadot/api-augment"
-import {getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
+import {getOrderBook, getOrderBookAssets, getOrderBookMarkets} from "./providers/graphql.js";
 import {getAssetBalances, getPDEXBalance, getTotalIssuance, getTotalStaked} from "./providers/mainnet.js";
 import {
     FEES_WALLET,
@@ -28,6 +28,7 @@ import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
 import {getAssetPrices, getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket, saveMarkets} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
+import {cleanOrderBook, getOrderBookStids, saveOrderBook, setOrderBookUpdateTS} from "./db/orderbook.js";
 
 export class Collector {
     assets;
@@ -209,6 +210,39 @@ export class Collector {
         }
     }
 
+    async updateOrderBook() {
+        console.log("updateOrderbook");
+
+        if(isEmpty(this.markets))
+            return;
+
+        for (let key of this.markets.keys()) {
+            try {
+                let oldResults = await getOrderBookStids(key);
+
+                let results = await getOrderBook(key,null,1);
+                if(results !== null) {
+                    await saveOrderBook(key, results);
+
+                    let resultStids = [];
+                    resultStids.push(...results.map(order => order.stid));
+
+                    let ordersToRemove = oldResults.filter(x => !resultStids.includes(x))
+
+                    if(ordersToRemove.length > 0) {
+                        await cleanOrderBook(ordersToRemove);
+                    }
+                }
+            }
+            catch(e)
+            {
+                console.error("failed updating orderbook", e);
+            }
+        }
+
+        await setOrderBookUpdateTS();
+    }
+
     async updateIssuance() {
         console.log("updateIssuance");
 
@@ -254,10 +288,15 @@ export class Collector {
         });
 
         for (let key of this.assets.keys()) {
-            this.assets.get(key).fees = Number(this.assets.get(key).fees)
+            if(isNaN(this.assets.get(key).fees))
+                this.assets.get(key).fees = null;
 
-            if (this.assets.get(key).price != null)
-                this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
+            if(this.assets.get(key).fees !== null) {
+                this.assets.get(key).fees = Number(this.assets.get(key).fees)
+
+                if (this.assets.get(key).price != null)
+                    this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
+            }
         }
 
         let previousDaysFees = await getPreviousFeeTotal();
@@ -477,9 +516,18 @@ export class Collector {
         console.log("startTimers");
 
         const this2 = this;
-        new CronJob('*/5 * * * * *',
+        new CronJob('*/5 * * * * *', // every 5 seconds
             async function () {
                 await this2.startSubscriptions();
+            },
+            null,
+            true,
+            'Etc/UTC'
+        );
+
+        new CronJob('30 * * * * *', // every minute
+            async function () {
+                await this2.updateOrderBook();
             },
             null,
             true,

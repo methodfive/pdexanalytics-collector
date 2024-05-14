@@ -1,10 +1,10 @@
 import {
-    FILTERED_ASSETS, POLKADEX_AUTH,
+    FILTERED_ASSETS, ORDERBOOK_BATCH_PAUSE, ORDERBOOK_MAX_BATCHES, POLKADEX_AUTH,
     POLKADEX_GRAPHQL, USDT_ASSET_PRICE, USDT_ASSETS
 } from "../constants.js";
 
 import { createRequire } from 'module';
-import {getAssetsFromMarket} from "../util.js";
+import {getAssetsFromMarket, isEmpty, sleep} from "../util.js";
 const require = createRequire(import.meta.url);
 const axios = require('axios');
 
@@ -130,4 +130,57 @@ export async function getOrder(orderID) {
 
    console.log(response.data);
    return response.data;
+}
+
+export async function getOrderBook(market, nextToken, iteration) {
+    if(isEmpty(market) || isEmpty(iteration))
+        return null;
+
+    if(iteration > ORDERBOOK_MAX_BATCHES)
+        return null;
+
+    let response = await axios.post(POLKADEX_GRAPHQL, {
+        query: `query GetOrderbook($market: String!, $limit: Int, $nextToken: String) {
+                  getOrderbook(market: $market, limit: $limit, nextToken: $nextToken) {
+                    items {
+                      p
+                      q
+                      s
+                      stid
+                    }
+                  nextToken
+                  }
+                }
+                `,
+   variables: {
+        'market': market,
+        'limit': null,
+        'nextToken': nextToken
+   },
+    },{
+        headers: {
+            'Authorization': POLKADEX_AUTH,
+            'Content-Type': 'application/json'
+        }}).catch(function(e) {
+        console.log("Error querying assets", e.message);
+    });
+
+    if(response == null || response.data == null)
+        return null;
+
+    let results = response.data.data.getOrderbook.items;
+    let newToken = response.data.data.getOrderbook.nextToken;
+
+    if(!isEmpty(newToken))
+    {
+        await sleep(ORDERBOOK_BATCH_PAUSE);
+
+        let additionalResults = await getOrderBook(market, newToken, iteration + 1);
+        if(additionalResults !== null)
+        {
+            results = [...results, ...additionalResults];
+        }
+    }
+
+    return results;
 }
