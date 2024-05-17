@@ -243,3 +243,45 @@ export async function updateAllTime()
         console.error("Error updating exchange all time",e);
     }
 }
+
+export async function updateMetadata(name, value)
+{
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `update metadata set data_value = ? where data_name = ?
+`,
+            [value, name],
+            ([rows,fields]) => {},
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.error("Error updating metadata",e);
+    }
+}
+
+export async function getMetadata(name)
+{
+    let result = null;
+    try {
+        let connectionPool = getConnection();
+
+        await queryAsyncWithRetries(connectionPool,
+            `select data_value from metadata where data_name = ?
+`,
+            [name],
+            ([rows,fields]) => {
+                for(let i = 0; i < rows.length; i++)
+                {
+                    result = rows[i].data_value;
+                }},
+            DB_RETRIES
+        );
+    }
+    catch(e) {
+        console.error("Error getting metadata",e);
+    }
+    return result;
+}

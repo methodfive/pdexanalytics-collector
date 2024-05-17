@@ -17,18 +17,19 @@ import {
     isMapEmpty,
     sleep
 } from "./util.js";
-import {getRegisteredUsers, getTotalHolders, getTotalStakers} from "./providers/subscan.js";
+import {getRegisteredUsers, getTotalHolders, getTotalStakers, getTransfers} from "./providers/subscan.js";
 import {
     closeConnectionPool
 } from "./db/database.js";
 import {closeStreams, closeWssClient, streamTrades} from "./providers/graphql_sub.js";
 import {CronJob} from "cron";
 import {hourlyJob, nightlyJob, updateCaches} from "./db/batch.js";
-import {getPreviousTotalUsers, saveExchangeDaily} from "./db/exchange.js";
+import {getMetadata, getPreviousTotalUsers, saveExchangeDaily, updateMetadata} from "./db/exchange.js";
 import {getAssetPrices, getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket, saveMarkets} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
 import {cleanOrderBook, getOrderBookStids, saveOrderBook, setOrderBookUpdateTS} from "./db/orderbook.js";
+import {getFeeWithdrawals, saveFeeWithdawal} from "./db/fees.js";
 
 export class Collector {
     assets;
@@ -287,12 +288,17 @@ export class Collector {
             assets.get(asset).fees = convertBalance(balance);
         });
 
+        let withdrawals = await getFeeWithdrawals();
+
         for (let key of this.assets.keys()) {
             if(isNaN(this.assets.get(key).fees))
                 this.assets.get(key).fees = null;
 
             if(this.assets.get(key).fees !== null) {
                 this.assets.get(key).fees = Number(this.assets.get(key).fees)
+
+                if(withdrawals.has(key))
+                    this.assets.get(key).fees = this.assets.get(key).fees + withdrawals.get(key);
 
                 if (this.assets.get(key).price != null)
                     this.assets.get(key).fees_value = Number(this.assets.get(key).fees) * Number(this.assets.get(key).price);
@@ -306,7 +312,7 @@ export class Collector {
                     this.assets.get(key).new_fees = Number(this.assets.get(key).fees) - Number(previousDaysFees.get(key).fees);
 
                     if (this.assets.get(key).new_fees < 0) // this should never happen, unless funds were withdrawn from the fee wallet
-                        this.assets.get(key).new_fees = Number(this.assets.get(key).new_fees);
+                        this.assets.get(key).new_fees = 0;
 
                     if (this.assets.get(key).price != null)
                         this.assets.get(key).new_fees_value = Number(this.assets.get(key).new_fees) * Number(this.assets.get(key).price);
@@ -387,6 +393,25 @@ export class Collector {
         }
     }
 
+    async updateFeeWithdrawals()
+    {
+        let block_num = Number(await getMetadata("fees.after_id:block_num"));
+        let event_idx = Number(await getMetadata("fees.after_id:event_idx"));
+
+        let after_id = {block_num: block_num, event_idx:event_idx};
+
+        let transfers = await getTransfers(FEES_WALLET, after_id);
+
+        if(transfers != null) {
+            for (let i = 0; i < transfers.length; i++) {
+                await saveFeeWithdawal(transfers[i].transfer_id, transfers[i].asset_symbol, transfers[i].amount);
+                after_id = {block_num: transfers[i].block_num, event_idx: transfers[i].event_idx};
+            }
+
+            await updateMetadata("fees.after_id:block_num", after_id.block_num);
+            await updateMetadata("fees.after_id:event_idx", after_id.event_idx);
+        }
+    }
 
     async processTrade(trade) {
         if(isMapEmpty(this.assets))
@@ -546,6 +571,7 @@ export class Collector {
         new CronJob('0 8 * * * *',
             async function () {
                 await hourlyJob();
+                await this2.updateFeeWithdrawals();
             },
             null,
             true,

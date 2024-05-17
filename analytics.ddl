@@ -307,3 +307,22 @@ CREATE TABLE pdexanalytics.orderbook
 
 ALTER TABLE orderbook add INDEX full_orderbook_index (base_asset_id, quote_asset_id);
 ALTER TABLE orderbook add INDEX orderbook_side_index (base_asset_id, quote_asset_id, side);
+
+CREATE TABLE pdexanalytics.metadata
+(
+  data_name varchar(64) not null,
+  data_value varchar(60) not null,
+  PRIMARY KEY (data_name)
+);
+
+
+CREATE TABLE pdexanalytics.fee_withdrawals
+(
+  transfer_id bigint not null,
+  asset_symbol varchar(64) not null,
+  amount decimal(20,10) not null,
+  PRIMARY KEY (transfer_id)
+);
+
+
+ALTER TABLE fee_withdrawals add INDEX asset_symbol_idx (asset_symbol);

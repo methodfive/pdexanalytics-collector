@@ -81,11 +81,13 @@ export async function getTotalStakers() {
         return null;
 }
 
-export async function getTransfers(after_id) {
+export async function getTransfers(address, after_id) {
     let id = after_id === null ? null : [after_id.block_num, after_id.event_idx];
 
     let response = await axios.post(POLKADEX_SUBSCAN_TRANSFERS_API, {
         after_id: id,
+        address: address,
+        direction: "sent",
         order: "asc",
         page: 0,
         row: SUBSCAN_ROW_LIMIT
