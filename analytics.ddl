@@ -326,3 +326,5 @@ CREATE TABLE pdexanalytics.fee_withdrawals
 
 
 ALTER TABLE fee_withdrawals add INDEX asset_symbol_idx (asset_symbol);
+
+alter table orderbook drop primary key, add primary key(base_asset_id, quote_asset_id, price, side);

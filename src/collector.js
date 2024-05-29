@@ -14,7 +14,7 @@ import {
     convertBalance,
     getAssetsFromMarket,
     isEmpty,
-    isMapEmpty,
+    isMapEmpty, orderBookIncludes,
     sleep
 } from "./util.js";
 import {getRegisteredUsers, getTotalHolders, getTotalStakers, getTransfers} from "./providers/subscan.js";
@@ -28,7 +28,7 @@ import {getMetadata, getPreviousTotalUsers, saveExchangeDaily, updateMetadata} f
 import {getAssetPrices, getPreviousFeeTotal, saveAsset, saveAssets} from "./db/assets.js";
 import {saveMarket, saveMarkets} from "./db/markets.js";
 import {saveTrade} from "./db/trades.js";
-import {cleanOrderBook, getOrderBookStids, saveOrderBook, setOrderBookUpdateTS} from "./db/orderbook.js";
+import {cleanOrderBook, getOrderBookOrders, saveOrderBook, setOrderBookUpdateTS} from "./db/orderbook.js";
 import {getFeeWithdrawals, saveFeeWithdawal} from "./db/fees.js";
 
 export class Collector {
@@ -219,17 +219,24 @@ export class Collector {
 
         for (let key of this.markets.keys()) {
             try {
-                let oldResults = await getOrderBookStids(key);
+                const assets = getAssetsFromMarket(key);
+
+                let oldResults = await getOrderBookOrders(key);
 
                 let results = await getOrderBook(key,null,1);
                 if(results !== null) {
+
                     await saveOrderBook(key, results);
 
-                    let resultStids = [];
-                    resultStids.push(...results.map(order => order.stid));
+                    let newResults = [];
+                    newResults.push(...results.map(order => [
+                        assets[0],
+                        assets[1],
+                        order.p,
+                        order.s
+                    ]));
 
-                    let ordersToRemove = oldResults.filter(x => !resultStids.includes(x))
-
+                    let ordersToRemove = oldResults.filter(x => !orderBookIncludes(newResults, x));
                     if(ordersToRemove.length > 0) {
                         await cleanOrderBook(ordersToRemove);
                     }

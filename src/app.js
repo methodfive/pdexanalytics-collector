@@ -1,5 +1,4 @@
 import { Collector } from "./collector.js";
-import {updateMarkets24H} from "./db/markets.js";
 
 export async function app() {
     const collector = new Collector();

@@ -20,6 +20,20 @@ export function getAssetsFromMarket(market) {
     return market.split("-");
 }
 
+export function orderBookIncludes(newResults, oldResult) {
+    for(let i = 0; i < newResults.length; i++)
+    {
+        if(newResults[i][0].localeCompare(oldResult[0]) === 0 &&
+            newResults[i][1].localeCompare(oldResult[1]) === 0 &&
+            Number(newResults[i][2]) === Number((oldResult[2])) &&
+            newResults[i][3].localeCompare(oldResult[3]) === 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 export function convertBalance(amount)
 {
     if(isEmpty(amount))
