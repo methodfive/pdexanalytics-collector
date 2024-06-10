@@ -122,8 +122,8 @@ union
 
 select ` + currentDate + ` as stat_date, asset_id, fees, fees_value, new_fees, new_fees_value, balance, price, 
 tvl, 0, 0 from assets 
-where not exists (select * from trades where base_asset_id=assets.asset_id or quote_asset_id = assets.asset_id)
-                
+where not exists (select * from trades where (base_asset_id=assets.asset_id or quote_asset_id = assets.asset_id) and date(timestamp) = ` + currentDate + ` )
+      
 ) stat_data
 group by stat_date, asset_id`,
             [],
