@@ -18,4 +18,4 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: NODE_OPTIONS=--max_old_space_size=1000; npm ci
-      - run: pm2 restart backendserver
+      - run: pm2 restart collector
